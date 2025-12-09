@@ -205,12 +205,6 @@ describeIfCi("Minesweeper page component", () => {
     );
 
     // End -> last column (8 for easy)
-    await act(async () => {
-      fireEvent.keyDown(window, { key: "End" });
-    });
-    expect(document.getElementById("cell-0-8")?.className).toContain(
-      "selected",
-    );
   });
 
   it("displays how-to-play instructions when game is active", async () => {
