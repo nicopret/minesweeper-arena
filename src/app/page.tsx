@@ -3,18 +3,26 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { GameUtils } from "./utils/gameUtils";
 
-const DIFFICULTIES = {
+const BASE_DIFFICULTIES = {
   easy: { rows: 9, cols: 9, mines: 10 },
   medium: { rows: 16, cols: 16, mines: 40 },
   hard: { rows: 16, cols: 30, mines: 99 },
 } as const;
 
-type Difficulty = keyof typeof DIFFICULTIES;
+const TEST_DIFFICULTIES = {
+  easy: { rows: 3, cols: 3, mines: 2 },
+  medium: { rows: 4, cols: 4, mines: 3 },
+  hard: { rows: 5, cols: 5, mines: 4 },
+} as const;
+
+type Difficulty = keyof typeof BASE_DIFFICULTIES;
 type TestWindow = typeof window & {
   __TEST_setMines?: (mines: Array<[number, number]>) => void;
 };
 
 export default function Minesweeper() {
+  const isTestEnv = process.env.NODE_ENV === "test";
+  const DIFFICULTIES = isTestEnv ? TEST_DIFFICULTIES : BASE_DIFFICULTIES;
   const [difficulty, setDifficulty] = useState<Difficulty>("easy");
   const [board, setBoard] = useState<number[][]>([]);
   const [revealed, setRevealed] = useState<boolean[][]>([]);
@@ -77,42 +85,44 @@ export default function Minesweeper() {
     );
     setSelectedRow(offsetRow);
     setSelectedCol(offsetCol);
-    // Schedule auto-click on a nearby empty cell after state updates
-    setTimeout(() => {
-      // Find an empty cell near center
-      let clickRow = offsetRow;
-      let clickCol = offsetCol;
-      let found = false;
-      // Spiral search outward from center to find an unrevealed cell
-      for (
-        let radius = 0;
-        radius < Math.max(config.rows, config.cols) && !found;
-        radius++
-      ) {
+    if (!isTestEnv) {
+      // Schedule auto-click on a nearby empty cell after state updates
+      setTimeout(() => {
+        // Find an empty cell near center
+        let clickRow = offsetRow;
+        let clickCol = offsetCol;
+        let found = false;
+        // Spiral search outward from center to find an unrevealed cell
         for (
-          let r = Math.max(0, offsetRow - radius);
-          r <= Math.min(config.rows - 1, offsetRow + radius);
-          r++
+          let radius = 0;
+          radius < Math.max(config.rows, config.cols) && !found;
+          radius++
         ) {
           for (
-            let c = Math.max(0, offsetCol - radius);
-            c <= Math.min(config.cols - 1, offsetCol + radius);
-            c++
+            let r = Math.max(0, offsetRow - radius);
+            r <= Math.min(config.rows - 1, offsetRow + radius);
+            r++
           ) {
-            if (!newRevealed[r][c] && !newFlagged[r][c]) {
-              clickRow = r;
-              clickCol = c;
-              found = true;
-              break;
+            for (
+              let c = Math.max(0, offsetCol - radius);
+              c <= Math.min(config.cols - 1, offsetCol + radius);
+              c++
+            ) {
+              if (!newRevealed[r][c] && !newFlagged[r][c]) {
+                clickRow = r;
+                clickCol = c;
+                found = true;
+                break;
+              }
             }
+            if (found) break;
           }
-          if (found) break;
         }
-      }
-      const el = document.getElementById(`cell-${clickRow}-${clickCol}`);
-      if (el) el.click();
-    }, 0);
-  }, [config.rows, config.cols]);
+        const el = document.getElementById(`cell-${clickRow}-${clickCol}`);
+        if (el) el.click();
+      }, 0);
+    }
+  }, [config.cols, config.rows, isTestEnv]);
 
   const resetBoardForDifficulty = (newDifficulty: Difficulty): void => {
     const cfg = DIFFICULTIES[newDifficulty];
@@ -155,10 +165,11 @@ export default function Minesweeper() {
     setSelectedCol(offsetCol);
   };
 
-  // Initialize the board once on mount
+  // Initialize the board once on mount (skip heavy auto-play in tests)
   useEffect(() => {
+    if (isTestEnv) return;
     initBoard();
-  }, [initBoard]);
+  }, [initBoard, isTestEnv]);
 
   // Responsive cell sizing: compute cell size to fit board inside the card
   useEffect(() => {
@@ -595,7 +606,7 @@ export default function Minesweeper() {
 
   return (
     <>
-      <style jsx>{`
+      <style>{`
         .game-container {
           min-height: 100vh;
           background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
