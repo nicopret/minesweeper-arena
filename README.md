@@ -12,7 +12,7 @@ Classic Minesweeper built with Next.js 16, React 19, TypeScript, Vitest, and Pla
 - E2E tests with Playwright and unit tests with Vitest
 
 ## Getting Started (local)
-Prerequisites: Node 18+ and npm.
+Prerequisites: Node 20+ and npm.
 
 ```bash
 npm install
