@@ -1,7 +1,10 @@
 export type DifficultyConfig = { rows: number; cols: number; mines: number };
 
 export class GameUtils {
-  static checkWin(config: DifficultyConfig, currentRevealed: boolean[][]): boolean {
+  static checkWin(
+    config: DifficultyConfig,
+    currentRevealed: boolean[][],
+  ): boolean {
     const cellsToReveal = config.rows * config.cols - config.mines;
     let revealedCount = 0;
 
@@ -24,7 +27,7 @@ export class GameUtils {
     config: DifficultyConfig,
     firstClick: boolean,
     flagged: boolean[][],
-    currentBoard: number[][]
+    currentBoard: number[][],
   ): boolean {
     if (firstClick) return false;
 

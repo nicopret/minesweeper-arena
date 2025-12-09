@@ -34,12 +34,15 @@ This document summarizes the key UI, UX and testability changes made to `src/app
   - A GitHub Actions workflow (`.github/workflows/ci.yml`) was added to run unit and Playwright tests on push/PR.
 
 Notes / Safety
+
 - The test hook is explicitly gated by `NEXT_PUBLIC_TEST_HOOK` — only set this to `1` for testing in local or CI environments.
 - If you want the hook even more restricted (CI-only), we can update the runtime gating to check for CI-specific env vars.
 
 If you'd like, I can also:
+
 - Move additional pure logic into `GameUtils` for easier unit testing.
 - Create a small developer guide describing how to run tests locally and in CI (including Playwright browser installation steps).
 
 ---
+
 Generated: automated commit by assistant (branch will contain this file and any uncommitted changes to `src/app/page.tsx`).

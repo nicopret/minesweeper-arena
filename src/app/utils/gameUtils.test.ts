@@ -1,7 +1,7 @@
-import { GameUtils } from './gameUtils';
+import { GameUtils } from "./gameUtils";
 
-describe('GameUtils.checkWin', () => {
-  it('returns false when not all non-mine cells are revealed', () => {
+describe("GameUtils.checkWin", () => {
+  it("returns false when not all non-mine cells are revealed", () => {
     const config = { rows: 3, cols: 3, mines: 1 };
     const revealed = [
       [true, true, true],
@@ -11,7 +11,7 @@ describe('GameUtils.checkWin', () => {
     expect(GameUtils.checkWin(config, revealed)).toBe(false);
   });
 
-  it('returns true when all non-mine cells are revealed', () => {
+  it("returns true when all non-mine cells are revealed", () => {
     const config = { rows: 3, cols: 3, mines: 1 };
     const revealed = [
       [true, true, true],
@@ -22,8 +22,8 @@ describe('GameUtils.checkWin', () => {
   });
 });
 
-describe('GameUtils.checkFlagsWin', () => {
-  it('returns false if firstClick is true', () => {
+describe("GameUtils.checkFlagsWin", () => {
+  it("returns false if firstClick is true", () => {
     const config = { rows: 3, cols: 3, mines: 1 };
     const flagged = [
       [false, false, false],
@@ -38,7 +38,7 @@ describe('GameUtils.checkFlagsWin', () => {
     expect(GameUtils.checkFlagsWin(config, true, flagged, board)).toBe(false);
   });
 
-  it('returns true when all mines are flagged correctly', () => {
+  it("returns true when all mines are flagged correctly", () => {
     const config = { rows: 3, cols: 3, mines: 1 };
     const flagged = [
       [false, false, false],
@@ -53,7 +53,7 @@ describe('GameUtils.checkFlagsWin', () => {
     expect(GameUtils.checkFlagsWin(config, false, flagged, board)).toBe(true);
   });
 
-  it('returns false when a flag is on a non-mine cell', () => {
+  it("returns false when a flag is on a non-mine cell", () => {
     const config = { rows: 3, cols: 3, mines: 1 };
     const flagged = [
       [true, false, false],
@@ -68,7 +68,7 @@ describe('GameUtils.checkFlagsWin', () => {
     expect(GameUtils.checkFlagsWin(config, false, flagged, board)).toBe(false);
   });
 
-  it('returns false when number of flags does not match mines', () => {
+  it("returns false when number of flags does not match mines", () => {
     const config = { rows: 3, cols: 3, mines: 2 };
     const flagged = [
       [false, false, false],
