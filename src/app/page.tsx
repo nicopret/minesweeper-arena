@@ -1,46 +1,44 @@
 "use client";
 
 import React, { useState, useEffect, useCallback, useRef } from "react";
-import { GameUtils } from "./utils/gameUtils";
+import { useAppDispatch, useAppSelector } from "./store/hooks";
+import {
+  clickCell,
+  resetBoard,
+  setDifficulty,
+  setMinesForTest,
+  setSelected,
+  tick,
+  toggleFlag as toggleFlagAction,
+} from "./store/gameSlice";
+import { type Difficulty } from "./store/gameSlice";
+import { type RootState } from "./store/store";
 
-const BASE_DIFFICULTIES = {
-  easy: { rows: 9, cols: 9, mines: 10 },
-  medium: { rows: 16, cols: 16, mines: 40 },
-  hard: { rows: 16, cols: 30, mines: 99 },
-} as const;
-
-const TEST_DIFFICULTIES = {
-  easy: { rows: 3, cols: 3, mines: 2 },
-  medium: { rows: 4, cols: 4, mines: 3 },
-  hard: { rows: 5, cols: 5, mines: 4 },
-} as const;
-
-type Difficulty = keyof typeof BASE_DIFFICULTIES;
 type TestWindow = typeof window & {
   __TEST_setMines?: (mines: Array<[number, number]>) => void;
 };
 
 export default function Minesweeper() {
   const isTestEnv = process.env.NODE_ENV === "test";
-  const DIFFICULTIES = isTestEnv ? TEST_DIFFICULTIES : BASE_DIFFICULTIES;
-  const [difficulty, setDifficulty] = useState<Difficulty>("easy");
-  const [board, setBoard] = useState<number[][]>([]);
-  const [revealed, setRevealed] = useState<boolean[][]>([]);
-  const [flagged, setFlagged] = useState<boolean[][]>([]);
-  const [gameOver, setGameOver] = useState(false);
-  const [gameWon, setGameWon] = useState(false);
-  const [firstClick, setFirstClick] = useState(true);
-  const [timer, setTimer] = useState(0);
-  const [flagCount, setFlagCount] = useState(0);
-  const [isRunning, setIsRunning] = useState(false);
+  const dispatch = useAppDispatch();
+  const {
+    difficulty,
+    config,
+    board,
+    revealed,
+    flagged,
+    gameOver,
+    gameWon,
+    timer,
+    flagCount,
+    isRunning,
+    selectedRow,
+    selectedCol,
+  } = useAppSelector((state: RootState) => state.game);
+
   const [hasMounted, setHasMounted] = useState(false);
-
-  const config = DIFFICULTIES[difficulty];
-
   const [cellSize, setCellSize] = useState(30);
   const gameCardRef = useRef<HTMLDivElement | null>(null);
-  const [selectedRow, setSelectedRow] = useState<number>(0);
-  const [selectedCol, setSelectedCol] = useState<number>(0);
 
   // Track client mount to keep SSR/CSR consistent
   useEffect(() => {
@@ -48,112 +46,24 @@ export default function Minesweeper() {
     setHasMounted(true);
   }, []);
 
-  const initBoard = useCallback(() => {
-    const {
-      board: newBoard,
-      revealed: newRevealed,
-      flagged: newFlagged,
-    } = GameUtils.createEmptyState(config);
-
-    setBoard(newBoard);
-    setRevealed(newRevealed);
-    setFlagged(newFlagged);
-    setGameOver(false);
-    setGameWon(false);
-    setFirstClick(true);
-    setTimer(0);
-    setFlagCount(0);
-    setIsRunning(false);
-    // Set random starting position near center
-    const centerRow = Math.floor(config.rows / 2);
-    const centerCol = Math.floor(config.cols / 2);
-    const offsetRow = Math.max(
-      0,
-      Math.min(config.rows - 1, centerRow + Math.floor(Math.random() * 5) - 2),
-    );
-    const offsetCol = Math.max(
-      0,
-      Math.min(config.cols - 1, centerCol + Math.floor(Math.random() * 5) - 2),
-    );
-    setSelectedRow(offsetRow);
-    setSelectedCol(offsetCol);
+  const newGame = useCallback(() => {
+    const targetRow = Math.floor(config.rows / 2);
+    const targetCol = Math.floor(config.cols / 2);
+    dispatch(resetBoard());
+    dispatch(setSelected({ row: targetRow, col: targetCol }));
     if (!isTestEnv) {
-      // Schedule auto-click on a nearby empty cell after state updates
       setTimeout(() => {
-        // Find an empty cell near center
-        let clickRow = offsetRow;
-        let clickCol = offsetCol;
-        let found = false;
-        // Spiral search outward from center to find an unrevealed cell
-        for (
-          let radius = 0;
-          radius < Math.max(config.rows, config.cols) && !found;
-          radius++
-        ) {
-          for (
-            let r = Math.max(0, offsetRow - radius);
-            r <= Math.min(config.rows - 1, offsetRow + radius);
-            r++
-          ) {
-            for (
-              let c = Math.max(0, offsetCol - radius);
-              c <= Math.min(config.cols - 1, offsetCol + radius);
-              c++
-            ) {
-              if (!newRevealed[r][c] && !newFlagged[r][c]) {
-                clickRow = r;
-                clickCol = c;
-                found = true;
-                break;
-              }
-            }
-            if (found) break;
-          }
-        }
-        const el = document.getElementById(`cell-${clickRow}-${clickCol}`);
+        const el = document.getElementById(`cell-${targetRow}-${targetCol}`);
         if (el) el.click();
       }, 0);
     }
-  }, [config, isTestEnv]);
-
-  const resetBoardForDifficulty = (newDifficulty: Difficulty): void => {
-    const cfg = DIFFICULTIES[newDifficulty];
-    const {
-      board: newBoard,
-      revealed: newRevealed,
-      flagged: newFlagged,
-    } = GameUtils.createEmptyState(cfg);
-
-    setBoard(newBoard);
-    setRevealed(newRevealed);
-    setFlagged(newFlagged);
-    setGameOver(false);
-    setGameWon(false);
-    setFirstClick(true);
-    setTimer(0);
-    setFlagCount(0);
-    setIsRunning(false);
-    // Set random starting position near center when difficulty changes
-    const centerRow = Math.floor(cfg.rows / 2);
-    const centerCol = Math.floor(cfg.cols / 2);
-    const offsetRow = Math.max(
-      0,
-      Math.min(cfg.rows - 1, centerRow + Math.floor(Math.random() * 5) - 2),
-    );
-    const offsetCol = Math.max(
-      0,
-      Math.min(cfg.cols - 1, centerCol + Math.floor(Math.random() * 5) - 2),
-    );
-    setSelectedRow(offsetRow);
-    setSelectedCol(offsetCol);
-  };
+  }, [config.cols, config.rows, dispatch, isTestEnv]);
 
   // Initialize the board once on mount (skip heavy auto-play in tests)
   useEffect(() => {
     if (isTestEnv) return;
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    initBoard();
-  }, [initBoard, isTestEnv]);
+    dispatch(resetBoard());
+  }, [dispatch, isTestEnv]);
 
   // Responsive cell sizing: compute cell size to fit board inside the card
   useEffect(() => {
@@ -180,33 +90,18 @@ export default function Minesweeper() {
     let interval: NodeJS.Timeout;
     if (isRunning && !gameOver) {
       interval = setInterval(() => {
-        setTimer((t) => t + 1);
+        dispatch(tick());
       }, 1000);
     }
     return () => clearInterval(interval);
-  }, [isRunning, gameOver]);
-
-  const buildBoardFromMines = useCallback(
-    (mines: Array<[number, number]>): number[][] =>
-      GameUtils.buildBoardFromMines(config, mines),
-    [config],
-  );
+  }, [dispatch, gameOver, isRunning]);
 
   // Expose a test hook to set a deterministic board from Playwright/tests (always on in dev/test)
   useEffect(() => {
     if (typeof window === "undefined") return;
     const testWindow = window as TestWindow;
     testWindow.__TEST_setMines = (mines: Array<[number, number]>) => {
-      const newBoard = buildBoardFromMines(mines || []);
-      setBoard(newBoard);
-      setRevealed(newBoard.map((r) => r.map(() => false)));
-      setFlagged(newBoard.map((r) => r.map(() => false)));
-      setFirstClick(false);
-      setIsRunning(false);
-      setGameOver(false);
-      setGameWon(false);
-      setTimer(0);
-      setFlagCount(0);
+      dispatch(setMinesForTest(mines));
     };
     return () => {
       if (typeof window !== "undefined") {
@@ -214,74 +109,14 @@ export default function Minesweeper() {
         delete tw.__TEST_setMines;
       }
     };
-  }, [buildBoardFromMines, config]);
-
-  // checkWin moved to src/app/utils/gameUtils.ts
-
-  const endGame = useCallback(
-    (won: boolean, currentBoard: number[][]): void => {
-      setGameOver(true);
-      setGameWon(won);
-      setIsRunning(false);
-
-      const newRevealed = revealed.map((r) => [...r]);
-      for (let i = 0; i < config.rows; i++) {
-        for (let j = 0; j < config.cols; j++) {
-          if (won) {
-            // reveal everything when player wins by identifying all bombs
-            newRevealed[i][j] = true;
-          } else {
-            // reveal mines when the player loses
-            if (currentBoard[i][j] === -1) {
-              newRevealed[i][j] = true;
-            }
-          }
-        }
-      }
-      setRevealed(newRevealed);
-    },
-    [config.cols, config.rows, revealed],
-  );
-
-  // Check whether all mines have been correctly flagged moved to GameUtils.checkFlagsWin
+  }, [dispatch]);
 
   const handleCellClick = useCallback(
     (row: number, col: number): void => {
-      if (gameOver || flagged[row][col] || revealed[row][col]) return;
-
-      let currentBoard = board;
-
-      if (firstClick) {
-        currentBoard = GameUtils.placeMines(config, row, col);
-        setFirstClick(false);
-        setIsRunning(true);
-        setBoard(currentBoard);
-      }
-
-      let newRevealed = revealed.map((r) => [...r]);
-
-      if (currentBoard[row][col] === -1) {
-        newRevealed[row][col] = true;
-        setRevealed(newRevealed);
-        endGame(false, currentBoard);
-        return;
-      }
-
-      newRevealed = GameUtils.revealFlood(
-        config,
-        flagged,
-        currentBoard,
-        newRevealed,
-        row,
-        col,
-      );
-      setRevealed(newRevealed);
-
-      if (GameUtils.checkWin(config, newRevealed)) {
-        endGame(true, currentBoard);
-      }
+      dispatch(setSelected({ row, col }));
+      dispatch(clickCell({ row, col }));
     },
-    [board, config, endGame, flagged, firstClick, gameOver, revealed],
+    [dispatch],
   );
 
   const handleRightClick = (
@@ -290,36 +125,19 @@ export default function Minesweeper() {
     col: number,
   ): void => {
     e.preventDefault();
-    if (gameOver || revealed[row][col]) return;
-
-    const newFlagged = flagged.map((r) => [...r]);
-    newFlagged[row][col] = !newFlagged[row][col];
-    setFlagged(newFlagged);
-    setFlagCount((prev) => prev + (newFlagged[row][col] ? 1 : -1));
-    // Check for win by flags
-    if (GameUtils.checkFlagsWin(config, firstClick, newFlagged, board)) {
-      endGame(true, board);
-    }
+    dispatch(toggleFlagAction({ row, col }));
   };
 
   // Toggle flag without an event (for keyboard)
   const toggleFlag = useCallback(
     (row: number, col: number): void => {
-      if (gameOver || revealed[row][col]) return;
-      const newFlagged = flagged.map((r) => [...r]);
-      newFlagged[row][col] = !newFlagged[row][col];
-      setFlagged(newFlagged);
-      setFlagCount((prev) => prev + (newFlagged[row][col] ? 1 : -1));
-      if (GameUtils.checkFlagsWin(config, firstClick, newFlagged, board)) {
-        endGame(true, board);
-      }
+      dispatch(toggleFlagAction({ row, col }));
     },
-    [board, config, endGame, firstClick, flagged, gameOver, revealed],
+    [dispatch],
   );
 
   const handleDifficultyChange = (newDifficulty: Difficulty): void => {
-    setDifficulty(newDifficulty);
-    resetBoardForDifficulty(newDifficulty);
+    dispatch(setDifficulty(newDifficulty));
   };
 
   // keyboard navigation and actions
@@ -338,7 +156,7 @@ export default function Minesweeper() {
 
       // If game over, Enter restarts
       if (e.key === "Enter" && gameOver) {
-        initBoard();
+        newGame();
         return;
       }
 
@@ -380,8 +198,7 @@ export default function Minesweeper() {
           return;
       }
 
-      setSelectedRow(r);
-      setSelectedCol(c);
+      dispatch(setSelected({ row: r, col: c }));
 
       // scroll selected cell into view
       const el = document.getElementById(`cell-${r}-${c}`);
@@ -402,11 +219,10 @@ export default function Minesweeper() {
     config.rows,
     config.cols,
     gameOver,
-    revealed,
-    flagged,
     handleCellClick,
     toggleFlag,
-    initBoard,
+    newGame,
+    dispatch,
   ]);
 
   const getCellContent = (row: number, col: number): string => {
@@ -588,7 +404,7 @@ export default function Minesweeper() {
                 🚩 {config.mines - flagCount}
               </div>
             </div>
-            <button onClick={initBoard} className="btn btn-primary fw-bold">
+            <button onClick={newGame} className="btn btn-primary fw-bold">
               New Game
             </button>
           </div>
@@ -647,15 +463,14 @@ export default function Minesweeper() {
                 } as React.CSSProperties
               }
             >
-              {board.map((row, i) =>
+              {board.map((row: number[], i: number) =>
                 row.map((_, j) => (
                   <div
                     id={`cell-${i}-${j}`}
                     key={`${i}-${j}`}
                     className={getCellClass(i, j)}
                     onClick={() => {
-                      setSelectedRow(i);
-                      setSelectedCol(j);
+                      dispatch(setSelected({ row: i, col: j }));
                       handleCellClick(i, j);
                     }}
                     onContextMenu={(e) => handleRightClick(e, i, j)}

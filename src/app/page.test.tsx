@@ -8,12 +8,20 @@ import {
 } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import Minesweeper from "./page";
+import { Providers } from "./providers";
 
 type TestWindow = typeof window & {
   __TEST_setMines?: (mines: Array<[number, number]>) => void;
 };
 
 describe.skip("Minesweeper page component", () => {
+  const renderWithProvider = () =>
+    render(
+      <Providers>
+        <Minesweeper />
+      </Providers>,
+    );
+
   beforeEach(() => {
     vi.spyOn(Math, "random").mockReturnValue(0.42);
     // Avoid errors when scrollIntoView runs in keyboard handler
@@ -25,7 +33,7 @@ describe.skip("Minesweeper page component", () => {
   });
 
   it("renders instructions and controls after mount", async () => {
-    render(<Minesweeper />);
+    renderWithProvider();
 
     await screen.findByText(/How to play/i);
     expect(
@@ -36,7 +44,7 @@ describe.skip("Minesweeper page component", () => {
   });
 
   it("seeds mines via the test hook and shows Game Over when clicking a mine", async () => {
-    render(<Minesweeper />);
+    renderWithProvider();
 
     const testWindow = window as TestWindow;
     expect(typeof testWindow.__TEST_setMines).toBe("function");
@@ -61,7 +69,7 @@ describe.skip("Minesweeper page component", () => {
   });
 
   it("updates flag counter when flagging a cell", async () => {
-    render(<Minesweeper />);
+    renderWithProvider();
 
     const testWindow = window as TestWindow;
     await act(async () => {
@@ -89,7 +97,7 @@ describe.skip("Minesweeper page component", () => {
   });
 
   it("keeps playing after flagging some mines (no premature win)", async () => {
-    render(<Minesweeper />);
+    renderWithProvider();
 
     const testWindow = window as TestWindow;
     await act(async () => {
@@ -123,7 +131,7 @@ describe.skip("Minesweeper page component", () => {
   });
 
   it("updates mine counter when changing difficulty", async () => {
-    render(<Minesweeper />);
+    renderWithProvider();
 
     const counter = await screen.findByText(/🚩/);
     const initial = parseInt(
@@ -144,7 +152,7 @@ describe.skip("Minesweeper page component", () => {
   });
 
   it("moves selection with arrow keys and flags via keyboard", async () => {
-    render(<Minesweeper />);
+    renderWithProvider();
 
     const testWindow = window as TestWindow;
     await act(async () => {
@@ -178,7 +186,7 @@ describe.skip("Minesweeper page component", () => {
   });
 
   it("moves to start/end of row with Home/End keys", async () => {
-    render(<Minesweeper />);
+    renderWithProvider();
 
     const testWindow = window as TestWindow;
     await act(async () => {
@@ -206,7 +214,7 @@ describe.skip("Minesweeper page component", () => {
   });
 
   it("displays how-to-play instructions when game is active", async () => {
-    render(<Minesweeper />);
+    renderWithProvider();
 
     await screen.findByText(/How to play:/i);
     expect(
@@ -216,7 +224,7 @@ describe.skip("Minesweeper page component", () => {
   });
 
   it("toggles difficulty buttons and mines count when selecting medium/hard/easy", async () => {
-    render(<Minesweeper />);
+    renderWithProvider();
 
     const easy = screen.getByRole("button", { name: /Easy \(9x9\)/i });
     const medium = screen.getByRole("button", { name: /Medium \(16x16\)/i });
@@ -265,7 +273,7 @@ describe.skip("Minesweeper page component", () => {
   });
 
   it("supports numpad navigation", async () => {
-    render(<Minesweeper />);
+    renderWithProvider();
 
     const testWindow = window as TestWindow;
     await act(async () => {
@@ -304,7 +312,7 @@ describe.skip("Minesweeper page component", () => {
   });
 
   it("ignores unknown keys and uses Enter to restart after game over", async () => {
-    render(<Minesweeper />);
+    renderWithProvider();
 
     const testWindow = window as TestWindow;
     await act(async () => {
@@ -331,7 +339,7 @@ describe.skip("Minesweeper page component", () => {
   });
 
   it("clicking New Game initializes a fresh board", async () => {
-    render(<Minesweeper />);
+    renderWithProvider();
 
     const newGame = screen.getByRole("button", { name: /New Game/i });
     await act(async () => {
