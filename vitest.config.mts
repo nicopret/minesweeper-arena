@@ -22,20 +22,9 @@ export default defineConfig({
     },
     // Allow swapping pools via env to manage memory (default threads)
     pool: process.env.VITEST_POOL ?? "threads",
-    poolOptions: {
-      threads: {
-        singleThread: true,
-        maxThreads: 1,
-        maxHeap: 6144,
-      },
-      forks: {
-        singleFork: true,
-      },
-    },
     sequence: {
       concurrent: false,
       shuffle: false,
-      maxConcurrency: 1,
     },
   },
 });
