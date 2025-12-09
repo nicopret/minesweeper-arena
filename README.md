@@ -1,6 +1,6 @@
 # Minesweeper
 
-[![CI](https://github.com/NicoPretorius/minesweeper/actions/workflows/ci.yml/badge.svg)](https://github.com/NicoPretorius/minesweeper/actions/workflows/ci.yml)
+[![CI](https://github.com/NicoPretorius/minesweeper-arena/actions/workflows/ci.yml/badge.svg)](https://github.com/NicoPretorius/minesweeper-arena/actions/workflows/ci.yml)
 
 Classic Minesweeper built with Next.js 16, React 19, TypeScript, Vitest, and Playwright.
 
@@ -10,6 +10,11 @@ Classic Minesweeper built with Next.js 16, React 19, TypeScript, Vitest, and Pla
 - Flagging, timer, mine counter, and win/lose states
 - Keyboard focus and accessibility-friendly controls
 - E2E tests with Playwright and unit tests with Vitest
+
+## How to Play
+- Mouse: left click to reveal, right click to flag/unflag
+- Keyboard: arrow keys to move, Space to reveal, X to flag/unflag
+- Win by revealing all safe cells; flags help track where you think mines are
 
 ## Getting Started (local)
 Prerequisites: Node 20+ and npm.
@@ -28,4 +33,4 @@ npm run dev
 - `npm run test:full` — run Vitest then Playwright
 
 ## CI
-GitHub Actions workflow `.github/workflows/ci.yml` runs on Node 18, installs deps via `npm ci`, executes Vitest, then Playwright (GitHub reporter). Use `npm run test` locally to mirror the unit step, or `npm run test:full` to exercise both suites before pushing.
+GitHub Actions workflow `.github/workflows/ci.yml` runs on Node 20, installs deps via `npm ci`, executes Vitest, then Playwright (GitHub reporter). Use `npm run test` locally to mirror the unit step, or `npm run test:full` to exercise both suites before pushing.
