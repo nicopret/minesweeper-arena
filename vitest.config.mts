@@ -5,8 +5,16 @@ export default defineConfig({
     environment: 'jsdom',
     globals: true,
     setupFiles: 'src/setupTests.ts',
-    // Exclude Playwright e2e files from Vitest discovery
-    exclude: ['tests/playwright/**', 'playwright.config.ts'],
+    // Only pick up our unit/integration tests, never anything in node_modules
+    include: [
+      'src/**/*.{test,spec}.{ts,tsx}',
+      'tests/**/*.{test,spec}.{ts,tsx}',
+    ],
+    exclude: [
+      '**/node_modules/**',
+      'tests/playwright/**',
+      'playwright.config.ts',
+    ],
     coverage: {
       reporter: ['text', 'lcov'],
     },
