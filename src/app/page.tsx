@@ -44,24 +44,16 @@ export default function Minesweeper() {
 
   // Track client mount to keep SSR/CSR consistent
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setHasMounted(true);
   }, []);
 
   const initBoard = useCallback(() => {
-    const newBoard: number[][] = [];
-    const newRevealed: boolean[][] = [];
-    const newFlagged: boolean[][] = [];
-
-    for (let i = 0; i < config.rows; i++) {
-      newBoard[i] = [];
-      newRevealed[i] = [];
-      newFlagged[i] = [];
-      for (let j = 0; j < config.cols; j++) {
-        newBoard[i][j] = 0;
-        newRevealed[i][j] = false;
-        newFlagged[i][j] = false;
-      }
-    }
+    const {
+      board: newBoard,
+      revealed: newRevealed,
+      flagged: newFlagged,
+    } = GameUtils.createEmptyState(config);
 
     setBoard(newBoard);
     setRevealed(newRevealed);
@@ -122,24 +114,15 @@ export default function Minesweeper() {
         if (el) el.click();
       }, 0);
     }
-  }, [config.cols, config.rows, isTestEnv]);
+  }, [config, isTestEnv]);
 
   const resetBoardForDifficulty = (newDifficulty: Difficulty): void => {
     const cfg = DIFFICULTIES[newDifficulty];
-    const newBoard: number[][] = [];
-    const newRevealed: boolean[][] = [];
-    const newFlagged: boolean[][] = [];
-
-    for (let i = 0; i < cfg.rows; i++) {
-      newBoard[i] = [];
-      newRevealed[i] = [];
-      newFlagged[i] = [];
-      for (let j = 0; j < cfg.cols; j++) {
-        newBoard[i][j] = 0;
-        newRevealed[i][j] = false;
-        newFlagged[i][j] = false;
-      }
-    }
+    const {
+      board: newBoard,
+      revealed: newRevealed,
+      flagged: newFlagged,
+    } = GameUtils.createEmptyState(cfg);
 
     setBoard(newBoard);
     setRevealed(newRevealed);
@@ -168,6 +151,7 @@ export default function Minesweeper() {
   // Initialize the board once on mount (skip heavy auto-play in tests)
   useEffect(() => {
     if (isTestEnv) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     initBoard();
   }, [initBoard, isTestEnv]);
 
@@ -202,117 +186,10 @@ export default function Minesweeper() {
     return () => clearInterval(interval);
   }, [isRunning, gameOver]);
 
-  const isValid = useCallback(
-    (row: number, col: number): boolean => {
-      return row >= 0 && row < config.rows && col >= 0 && col < config.cols;
-    },
-    [config.cols, config.rows],
-  );
-
-  const placeMines = useCallback(
-    (excludeRow: number, excludeCol: number): number[][] => {
-      // Build a fresh empty board based on current config to avoid stale state
-      const newBoard: number[][] = [];
-      for (let i = 0; i < config.rows; i++) {
-        newBoard[i] = [];
-        for (let j = 0; j < config.cols; j++) {
-          newBoard[i][j] = 0;
-        }
-      }
-      let minesPlaced = 0;
-
-      while (minesPlaced < config.mines) {
-        const row = Math.floor(Math.random() * config.rows);
-        const col = Math.floor(Math.random() * config.cols);
-
-        // don't place a mine on the excluded cell or any of its 8 neighbors
-        const isInExcludeNeighborhood =
-          Math.abs(row - excludeRow) <= 1 && Math.abs(col - excludeCol) <= 1;
-        if (newBoard[row][col] !== -1 && !isInExcludeNeighborhood) {
-          newBoard[row][col] = -1;
-          minesPlaced++;
-
-          for (let i = -1; i <= 1; i++) {
-            for (let j = -1; j <= 1; j++) {
-              const newRow = row + i;
-              const newCol = col + j;
-              if (isValid(newRow, newCol) && newBoard[newRow][newCol] !== -1) {
-                newBoard[newRow][newCol]++;
-              }
-            }
-          }
-        }
-      }
-
-      setBoard(newBoard);
-      return newBoard;
-    },
-    [config.cols, config.mines, config.rows, isValid],
-  );
-
-  // Build a board from an explicit list of mine positions (for deterministic tests)
   const buildBoardFromMines = useCallback(
-    (mines: Array<[number, number]>): number[][] => {
-      const newBoard: number[][] = [];
-      for (let i = 0; i < config.rows; i++) {
-        newBoard[i] = [];
-        for (let j = 0; j < config.cols; j++) {
-          newBoard[i][j] = 0;
-        }
-      }
-
-      for (const [row, col] of mines) {
-        if (isValid(row, col)) {
-          newBoard[row][col] = -1;
-        }
-      }
-
-      for (let i = 0; i < config.rows; i++) {
-        for (let j = 0; j < config.cols; j++) {
-          if (newBoard[i][j] === -1) continue;
-          let count = 0;
-          for (let di = -1; di <= 1; di++) {
-            for (let dj = -1; dj <= 1; dj++) {
-              const ni = i + di;
-              const nj = j + dj;
-              if (isValid(ni, nj) && newBoard[ni][nj] === -1) count++;
-            }
-          }
-          newBoard[i][j] = count;
-        }
-      }
-
-      return newBoard;
-    },
-    [config.cols, config.rows, isValid],
-  );
-
-  const revealCellRecursive = useCallback(
-    function recur(
-      row: number,
-      col: number,
-      currentBoard: number[][],
-      currentRevealed: boolean[][],
-    ): void {
-      if (
-        !isValid(row, col) ||
-        currentRevealed[row][col] ||
-        flagged[row][col]
-      ) {
-        return;
-      }
-
-      currentRevealed[row][col] = true;
-
-      if (currentBoard[row][col] === 0) {
-        for (let i = -1; i <= 1; i++) {
-          for (let j = -1; j <= 1; j++) {
-            recur(row + i, col + j, currentBoard, currentRevealed);
-          }
-        }
-      }
-    },
-    [flagged, isValid],
+    (mines: Array<[number, number]>): number[][] =>
+      GameUtils.buildBoardFromMines(config, mines),
+    [config],
   );
 
   // Expose a test hook to set a deterministic board from Playwright/tests (always on in dev/test)
@@ -337,7 +214,7 @@ export default function Minesweeper() {
         delete tw.__TEST_setMines;
       }
     };
-  }, [buildBoardFromMines, config.cols, config.rows]);
+  }, [buildBoardFromMines, config]);
 
   // checkWin moved to src/app/utils/gameUtils.ts
 
@@ -375,12 +252,13 @@ export default function Minesweeper() {
       let currentBoard = board;
 
       if (firstClick) {
-        currentBoard = placeMines(row, col);
+        currentBoard = GameUtils.placeMines(config, row, col);
         setFirstClick(false);
         setIsRunning(true);
+        setBoard(currentBoard);
       }
 
-      const newRevealed = revealed.map((r) => [...r]);
+      let newRevealed = revealed.map((r) => [...r]);
 
       if (currentBoard[row][col] === -1) {
         newRevealed[row][col] = true;
@@ -389,24 +267,21 @@ export default function Minesweeper() {
         return;
       }
 
-      revealCellRecursive(row, col, currentBoard, newRevealed);
+      newRevealed = GameUtils.revealFlood(
+        config,
+        flagged,
+        currentBoard,
+        newRevealed,
+        row,
+        col,
+      );
       setRevealed(newRevealed);
 
       if (GameUtils.checkWin(config, newRevealed)) {
         endGame(true, currentBoard);
       }
     },
-    [
-      board,
-      config,
-      endGame,
-      flagged,
-      firstClick,
-      gameOver,
-      placeMines,
-      revealCellRecursive,
-      revealed,
-    ],
+    [board, config, endGame, flagged, firstClick, gameOver, revealed],
   );
 
   const handleRightClick = (
