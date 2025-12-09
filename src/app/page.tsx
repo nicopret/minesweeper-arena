@@ -12,6 +12,7 @@ const DIFFICULTIES = {
 type Difficulty = keyof typeof DIFFICULTIES;
 
 export default function Minesweeper() {
+  const [hasMounted, setHasMounted] = useState(false);
   const [difficulty, setDifficulty] = useState<Difficulty>('easy');
   const [board, setBoard] = useState<number[][]>([]);
   const [revealed, setRevealed] = useState<boolean[][]>([]);
@@ -25,10 +26,10 @@ export default function Minesweeper() {
 
   const config = DIFFICULTIES[difficulty];
 
-const [cellSize, setCellSize] = useState(30);
-const gameCardRef = useRef<HTMLDivElement | null>(null);
-const [selectedRow, setSelectedRow] = useState<number>(0);
-const [selectedCol, setSelectedCol] = useState<number>(0);
+  const [cellSize, setCellSize] = useState(30);
+  const gameCardRef = useRef<HTMLDivElement | null>(null);
+  const [selectedRow, setSelectedRow] = useState<number>(0);
+  const [selectedCol, setSelectedCol] = useState<number>(0);
 
   const initBoard = useCallback(() => {
     const newBoard: number[][] = [];
@@ -249,29 +250,30 @@ const [selectedCol, setSelectedCol] = useState<number>(0);
     }
   };
 
-  // Expose a test hook to set a deterministic board from Playwright/tests.
+  // Expose a test hook to set a deterministic board from Playwright/tests (always on in dev/test)
   useEffect(() => {
-    const enabled = process.env.NEXT_PUBLIC_TEST_HOOK === '1' || process.env.NEXT_PUBLIC_TEST_HOOK === 'true';
-    if (!enabled) return;
-
-    if (typeof window !== 'undefined') {
-      (window as any).__TEST_setMines = (mines: Array<[number, number]>) => {
-        const newBoard = buildBoardFromMines(mines || []);
-        setBoard(newBoard);
-        setRevealed(newBoard.map((r) => r.map(() => false)));
-        setFlagged(newBoard.map((r) => r.map(() => false)));
-        setFirstClick(false);
-        setIsRunning(false);
-        setGameOver(false);
-        setGameWon(false);
-        setTimer(0);
-        setFlagCount(0);
-      };
-    }
+    if (typeof window === 'undefined') return;
+    (window as any).__TEST_setMines = (mines: Array<[number, number]>) => {
+      const newBoard = buildBoardFromMines(mines || []);
+      setBoard(newBoard);
+      setRevealed(newBoard.map((r) => r.map(() => false)));
+      setFlagged(newBoard.map((r) => r.map(() => false)));
+      setFirstClick(false);
+      setIsRunning(false);
+      setGameOver(false);
+      setGameWon(false);
+      setTimer(0);
+      setFlagCount(0);
+    };
     return () => {
       if (typeof window !== 'undefined') delete (window as any).__TEST_setMines;
     };
   }, [config.rows, config.cols]);
+
+  // Track client mount to allow a stable shell during SSR
+  useEffect(() => {
+    setHasMounted(true);
+  }, []);
 
   // checkWin moved to src/app/utils/gameUtils.ts
 
@@ -463,6 +465,37 @@ const [selectedCol, setSelectedCol] = useState<number>(0);
     }
     return className;
   };
+
+  if (!hasMounted) {
+    return (
+      <div className="game-container">
+        <div className="container">
+          <div className="row justify-content-center">
+            <div className="col-12 col-md-10 col-lg-8">
+              <div className="game-card">
+                <h1 className="text-center mb-4">Minesweeper</h1>
+                <div className="d-flex justify-content-between align-items-center mb-3">
+                  <div className="bg-light rounded px-3 py-2">
+                    <strong>Mines:</strong> {config.mines}
+                  </div>
+                  <button type="button" className="btn btn-primary fw-bold">
+                    New Game
+                  </button>
+                  <div className="bg-light rounded px-3 py-2">
+                    <strong>Time:</strong> 0s
+                  </div>
+                </div>
+                <div className="mb-3 text-center text-muted small">
+                  <p className="mb-1"><strong>How to play:</strong></p>
+                  <p className="mb-0">Arrow keys to move • Space to reveal • X to flag</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <>
