@@ -14,6 +14,7 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    "coverage/**",
   ]),
   {
     files: ["**/*.{test,spec}.{ts,tsx}", "tests/**/*.{ts,tsx}"],
@@ -24,6 +25,12 @@ const eslintConfig = defineConfig([
     rules: {
       ...testingLibrary.configs.react.rules,
       ...jestDom.configs.recommended.rules,
+    },
+  },
+  {
+    files: ["tests/playwright/**/*.{ts,tsx}"],
+    rules: {
+      "testing-library/prefer-screen-queries": "off",
     },
   },
 ]);

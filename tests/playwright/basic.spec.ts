@@ -1,16 +1,20 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, type APIResponse } from "@playwright/test";
 
-test('homepage returns 200 on available port (tries 3000 then 3001)', async ({ page }) => {
+test("homepage returns 200 on available port (tries 3000 then 3001)", async ({
+  page,
+}) => {
   const ports = [3000, 3001];
-  let response = null as any;
+  let response: APIResponse | null = null;
 
   for (const port of ports) {
     try {
-      response = await page.goto(`http://localhost:${port}`, { waitUntil: 'networkidle' });
+      response = await page.goto(`http://localhost:${port}`, {
+        waitUntil: "networkidle",
+      });
       if (response && response.status && response.status() < 400) {
         break;
       }
-    } catch (e) {
+    } catch {
       // try next port
     }
   }
