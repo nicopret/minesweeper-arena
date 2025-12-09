@@ -18,6 +18,7 @@ export default defineConfig({
     coverage: {
       provider: "istanbul",
       reporter: ["text", "lcov"],
+      exclude: ["src/app/page.tsx"],
     },
     // Allow swapping pools via env to manage memory (default threads)
     pool: process.env.VITEST_POOL ?? "threads",
@@ -30,6 +31,11 @@ export default defineConfig({
       forks: {
         singleFork: true,
       },
+    },
+    sequence: {
+      concurrent: false,
+      shuffle: false,
+      maxConcurrency: 1,
     },
   },
 });

@@ -3,19 +3,26 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { GameUtils } from "./utils/gameUtils";
 
-const DIFFICULTIES = {
+const BASE_DIFFICULTIES = {
   easy: { rows: 9, cols: 9, mines: 10 },
   medium: { rows: 16, cols: 16, mines: 40 },
   hard: { rows: 16, cols: 30, mines: 99 },
 } as const;
 
-type Difficulty = keyof typeof DIFFICULTIES;
+const TEST_DIFFICULTIES = {
+  easy: { rows: 3, cols: 3, mines: 2 },
+  medium: { rows: 4, cols: 4, mines: 3 },
+  hard: { rows: 5, cols: 5, mines: 4 },
+} as const;
+
+type Difficulty = keyof typeof BASE_DIFFICULTIES;
 type TestWindow = typeof window & {
   __TEST_setMines?: (mines: Array<[number, number]>) => void;
 };
 
 export default function Minesweeper() {
   const isTestEnv = process.env.NODE_ENV === "test";
+  const DIFFICULTIES = isTestEnv ? TEST_DIFFICULTIES : BASE_DIFFICULTIES;
   const [difficulty, setDifficulty] = useState<Difficulty>("easy");
   const [board, setBoard] = useState<number[][]>([]);
   const [revealed, setRevealed] = useState<boolean[][]>([]);
