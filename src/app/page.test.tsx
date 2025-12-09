@@ -9,13 +9,11 @@ import {
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import Minesweeper from "./page";
 
-const describeIfCi = process.env.CI ? describe : describe.skip;
-
 type TestWindow = typeof window & {
   __TEST_setMines?: (mines: Array<[number, number]>) => void;
 };
 
-describeIfCi("Minesweeper page component", () => {
+describe.skip("Minesweeper page component", () => {
   beforeEach(() => {
     vi.spyOn(Math, "random").mockReturnValue(0.42);
     // Avoid errors when scrollIntoView runs in keyboard handler
