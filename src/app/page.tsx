@@ -25,6 +25,7 @@ export default function Minesweeper() {
   const [timer, setTimer] = useState(0);
   const [flagCount, setFlagCount] = useState(0);
   const [isRunning, setIsRunning] = useState(false);
+  const [hasMounted, setHasMounted] = useState(false);
 
   const config = DIFFICULTIES[difficulty];
 
@@ -32,6 +33,11 @@ export default function Minesweeper() {
   const gameCardRef = useRef<HTMLDivElement | null>(null);
   const [selectedRow, setSelectedRow] = useState<number>(0);
   const [selectedCol, setSelectedCol] = useState<number>(0);
+
+  // Track client mount to keep SSR/CSR consistent
+  useEffect(() => {
+    setHasMounted(true);
+  }, []);
 
   const initBoard = useCallback(() => {
     const newBoard: number[][] = [];
@@ -548,6 +554,44 @@ export default function Minesweeper() {
     }
     return className;
   };
+
+  if (!hasMounted) {
+    return (
+      <div className="game-container">
+        <div className="container">
+          <div className="row justify-content-center">
+            <div className="col-12 col-md-10 col-lg-8">
+              <div className="game-card">
+                <h1 className="text-center mb-4">Minesweeper</h1>
+                <div className="d-flex justify-content-between align-items-center mb-3">
+                  <div className="bg-light rounded px-3 py-2">
+                    <strong>Mines:</strong> {config.mines}
+                  </div>
+                  <button type="button" className="btn btn-primary fw-bold">
+                    New Game
+                  </button>
+                  <div className="bg-light rounded px-3 py-2">
+                    <strong>Time:</strong> 0s
+                  </div>
+                </div>
+                <div className="mb-3 text-center text-muted small">
+                  <p className="mb-1">
+                    <strong>How to play:</strong>
+                  </p>
+                  <p className="mb-0">
+                    Mouse: left click to reveal • Right click to flag
+                  </p>
+                  <p className="mb-0">
+                    Keyboard: Arrow keys move • Space reveal • X flag
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <>
