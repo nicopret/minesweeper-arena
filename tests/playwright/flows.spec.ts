@@ -1,64 +1,103 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, Page } from '@playwright/test';
+
+// Helpers --------------------------------------------------------------------
+
+const flagCounter = (page: Page) => page.locator('.d-flex .bg-light').nth(1);
+
+const getFlagsRemaining = async (page: Page): Promise<number> => {
+  const text = await flagCounter(page).innerText();
+  const match = text.match(/\d+/);
+  if (!match) throw new Error('Could not read flag counter');
+  return parseInt(match[0], 10);
+};
+
+const moveSelectionToTopLeft = async (page: Page) => {
+  for (let i = 0; i < 20; i++) await page.keyboard.press('ArrowUp');
+  for (let i = 0; i < 40; i++) await page.keyboard.press('ArrowLeft');
+};
+
+const selectUnrevealedTopRowCell = async (page: Page) => {
+  const columns = await page.evaluate(() => document.querySelectorAll('[id^="cell-0-"]').length || 0);
+  if (columns === 0) throw new Error('Board not ready');
+
+  await moveSelectionToTopLeft(page);
+
+  for (let col = 0; col < columns; col++) {
+    const isRevealed = await page.locator(`#cell-0-${col}`).evaluate((el) => el?.classList.contains('revealed'));
+    if (!isRevealed) return;
+    await page.keyboard.press('ArrowRight');
+  }
+
+  throw new Error('No unrevealed cell found to flag');
+};
+
+const seedBoardIfHookAvailable = async (
+  page: Page,
+  mines: Array<[number, number]>
+): Promise<boolean> => {
+  return await page.evaluate((seed) => {
+    const hook = (window as any).__TEST_setMines;
+    if (typeof hook === 'function') {
+      hook(seed);
+      return true;
+    }
+    return false;
+  }, mines);
+};
+
+const clickUntilGameOver = async (page: Page) => {
+  const unrevealed = page.locator('.board-container .cell:not(.revealed)');
+  for (let i = 0; i < 500; i++) {
+    const remaining = await unrevealed.count();
+    if (remaining === 0) break;
+
+    await unrevealed.first().click();
+    if (await page.locator('text=Game Over').isVisible()) return;
+  }
+  throw new Error('Could not trigger Game Over by clicking cells');
+};
+
+const triggerGameOver = async (page: Page) => {
+  const seeded = await seedBoardIfHookAvailable(page, [[0, 0]]);
+  if (seeded) {
+    await page.locator('#cell-0-0').click();
+  } else {
+    await clickUntilGameOver(page);
+  }
+  await expect(page.locator('text=Game Over')).toBeVisible();
+};
 
 // Full e2e flows: keyboard navigation, flag toggling, click-until-mine (lose), and restart behavior.
+test.describe.configure({ timeout: 120_000 });
 
 test.describe('Full E2E Flows', () => {
   test('keyboard navigation + flagging updates flag counter', async ({ page }) => {
     await page.goto('/', { waitUntil: 'networkidle' });
-
-    // Ensure a fresh game
     await page.getByRole('button', { name: /New Game/i }).click();
+    await page.waitForSelector('.board-container .cell');
 
-    // Focus the page and press Arrow keys to move selection
-    await page.keyboard.press('Tab'); // focus the New Game button or page
-    // Move selection to the center roughly using Arrow keys
-    await page.keyboard.press('ArrowDown');
-    await page.keyboard.press('ArrowRight');
+    await selectUnrevealedTopRowCell(page);
 
-    // Get initial flags remaining text
-    const flagCounter = page.locator('text=/🚩/');
-
-    // Press X to toggle flag on the currently selected cell
+    const before = await getFlagsRemaining(page);
     await page.keyboard.press('x');
+    const after = await getFlagsRemaining(page);
 
-    // The flag count display should have decreased (shows remaining mines)
-    // We check that an element containing the flag emoji exists (the cell should show "🚩")
-    const anyFlagged = await page.locator('.cell.flagged').count();
-    expect(anyFlagged).toBeGreaterThanOrEqual(0);
+    expect(after).toBe(before - 1);
+    await expect(page.locator('.cell.flagged')).toHaveCount(1);
   });
 
   test('click cells until mine -> Game Over appears', async ({ page }) => {
     await page.goto('/', { waitUntil: 'networkidle' });
-    // Seed a deterministic board with a mine at 0,0 then click it to force Game Over
-    await page.evaluate(() => {
-      (window as any).__TEST_setMines([[0, 0]]);
-    });
-
-    // Click the deterministic mine at 0,0
-    await page.locator('#cell-0-0').click();
-
-    // Check for Game Over text
-    const over = await page.locator('text=Game Over').count();
-    expect(over).toBeGreaterThan(0);
-  }, { timeout: 120_000 });
+    await triggerGameOver(page);
+  });
 
   test('after game over pressing Enter restarts to instructions view', async ({ page }) => {
     await page.goto('/', { waitUntil: 'networkidle' });
-    // Seed deterministic board with a mine at 0,0
-    await page.evaluate(() => {
-      (window as any).__TEST_setMines([[0, 0]]);
-    });
 
-    // Click the mine to produce Game Over
-    await page.locator('#cell-0-0').click();
-    const over = await page.locator('text=Game Over').count();
-    expect(over).toBeGreaterThan(0);
-
-    // Press Enter to restart
+    await triggerGameOver(page);
     await page.keyboard.press('Enter');
 
-    // Now the instructions text should be visible again
     const instructions = page.locator('text=How to play');
     await expect(instructions).toBeVisible({ timeout: 5000 });
-  }, { timeout: 120_000 });
+  });
 });

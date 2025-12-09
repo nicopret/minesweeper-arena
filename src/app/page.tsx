@@ -251,6 +251,9 @@ const [selectedCol, setSelectedCol] = useState<number>(0);
 
   // Expose a test hook to set a deterministic board from Playwright/tests.
   useEffect(() => {
+    const enabled = process.env.NEXT_PUBLIC_TEST_HOOK === '1' || process.env.NEXT_PUBLIC_TEST_HOOK === 'true';
+    if (!enabled) return;
+
     if (typeof window !== 'undefined') {
       (window as any).__TEST_setMines = (mines: Array<[number, number]>) => {
         const newBoard = buildBoardFromMines(mines || []);
