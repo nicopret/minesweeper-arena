@@ -4,9 +4,10 @@ test.describe('Visual E2E', () => {
   test('board visible and new game screenshot', async ({ page }, testInfo) => {
     await page.goto('/', { waitUntil: 'networkidle' });
 
-    // Seed deterministic board so the screenshot is stable
+    // Seed deterministic board if hook exists so the screenshot is stable
     await page.evaluate(() => {
-      (window as any).__TEST_setMines([[1, 1], [2, 3], [4, 4]]);
+      const hook = (window as any).__TEST_setMines;
+      if (typeof hook === 'function') hook([[1, 1], [2, 3], [4, 4]]);
     });
 
     // Ensure game is initialized by clicking New Game
@@ -30,7 +31,8 @@ test.describe('Visual E2E', () => {
     // Click Medium difficulty then seed and New Game for deterministic medium board
     await page.getByRole('button', { name: /Medium \(16x16\)/i }).click();
     await page.evaluate(() => {
-      (window as any).__TEST_setMines([[0,0],[0,1],[1,0],[2,2]]);
+      const hook = (window as any).__TEST_setMines;
+      if (typeof hook === 'function') hook([[0,0],[0,1],[1,0],[2,2]]);
     });
     await page.getByRole('button', { name: /New Game/i }).click();
 
