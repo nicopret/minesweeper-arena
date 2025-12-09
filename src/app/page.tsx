@@ -487,7 +487,8 @@ export default function Minesweeper() {
                 </div>
                 <div className="mb-3 text-center text-muted small">
                   <p className="mb-1"><strong>How to play:</strong></p>
-                  <p className="mb-0">Arrow keys to move • Space to reveal • X to flag</p>
+                  <p className="mb-0">Mouse: left click to reveal • Right click to flag</p>
+                  <p className="mb-0">Keyboard: Arrow keys move • Space reveal • X flag</p>
                 </div>
               </div>
             </div>
@@ -602,7 +603,8 @@ export default function Minesweeper() {
           ) : (
             <div className="mb-3 text-center text-muted small">
               <p className="mb-1"><strong>How to play:</strong></p>
-              <p className="mb-0">Arrow keys to move • Space to reveal • X to flag</p>
+              <p className="mb-0">Mouse: left click to reveal • Right click to flag</p>
+              <p className="mb-0">Keyboard: Arrow keys move • Space reveal • X flag</p>
             </div>
           )}
 
