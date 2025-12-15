@@ -1,3 +1,6 @@
+import React from "react";
+import type { GameState } from "../store/gameSlice";
+
 export type DifficultyConfig = { rows: number; cols: number; mines: number };
 
 export class GameUtils {
@@ -170,5 +173,56 @@ export class GameUtils {
     }
 
     return flagCountLocal === config.mines;
+  }
+
+  static getCellContent(
+    state: GameState,
+    row: number,
+    col: number,
+  ): React.ReactNode {
+    const { board, revealed, flagged } = state;
+    if (revealed[row]?.[col]) {
+      if (board[row]?.[col] === -1) {
+        return React.createElement("i", {
+          className: "fa-solid fa-bomb",
+          "aria-hidden": "true",
+        });
+      }
+      if ((board[row]?.[col] ?? 0) > 0) {
+        return String(board[row][col]);
+      }
+      return "";
+    }
+
+    if (flagged[row]?.[col]) {
+      return React.createElement("i", {
+        className: "fa-solid fa-flag",
+        "aria-hidden": "true",
+      });
+    }
+
+    return "";
+  }
+
+  static getCellClass(state: GameState, row: number, col: number): string[] {
+    const { board, revealed, flagged, selectedRow, selectedCol } = state;
+    const classNames: string[] = ["cell"];
+
+    if (revealed[row]?.[col]) {
+      classNames.push("revealed");
+      if (board[row]?.[col] === -1) {
+        classNames.push("mine");
+      } else if ((board[row]?.[col] ?? 0) > 0) {
+        classNames.push(`number-${board[row][col]}`);
+      }
+    } else if (flagged[row]?.[col]) {
+      classNames.push("flagged");
+    }
+
+    if (row === selectedRow && col === selectedCol) {
+      classNames.push("selected");
+    }
+
+    return classNames;
   }
 }
