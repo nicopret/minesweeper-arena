@@ -18,6 +18,6 @@
     ]
   },
   "framework": "nextjs",
-  "buildCommand": "npm run build",
-  "outputDirectory": "dist/apps/web/.next"
+  "buildCommand": "cd frontends/web && npx next build",
+  "outputDirectory": "frontends/web/.next"
 }
