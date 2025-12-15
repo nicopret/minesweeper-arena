@@ -1,6 +1,8 @@
 {
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
+    "baseUrl": ".",
+    "composite": true,
     "plugins": [
       {
         "name": "next"
@@ -26,10 +28,5 @@
     "**/*.stories.tsx",
     "**/*.stories.jsx",
     "**/*.stories.mdx"
-  ],
-  "references": [
-    {
-      "path": "./tsconfig.storybook.json"
-    }
   ]
 }

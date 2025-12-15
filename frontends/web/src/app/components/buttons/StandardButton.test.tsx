@@ -1,5 +1,5 @@
-import { fireEvent, render, screen } from "@testing-library/react";
-import React from "react";
+import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import StandardButton from "./StandardButton";
 
@@ -19,7 +19,7 @@ describe("StandardButton", () => {
     expect(button).toHaveClass("fw-bold");
   });
 
-  it("invokes onClick when pressed", () => {
+  it("invokes onClick when pressed", async () => {
     const onClick = vi.fn();
     render(
       <StandardButton
@@ -29,7 +29,8 @@ describe("StandardButton", () => {
       />,
     );
 
-    fireEvent.click(screen.getByRole("button", { name: /Press/i }));
+    const user = userEvent.setup();
+    await user.click(screen.getByRole("button", { name: /Press/i }));
     expect(onClick).toHaveBeenCalledTimes(1);
   });
 });
