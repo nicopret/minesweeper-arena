@@ -10,7 +10,7 @@
     "lint:fix": "eslint --fix",
     "format": "prettier --check .",
     "format:fix": "prettier --write .",
-    "prepare": "husky install",
+    "prepare": "husky",
     "test": "vitest run",
     "test:ci": "vitest run",
     "test:watch": "vitest --watch",

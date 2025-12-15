@@ -7,6 +7,9 @@ export const metadata = {
   description:
     "Play the classic Minesweeper game online. Test your logic and strategy skills with three difficulty levels.",
   keywords: "minesweeper, puzzle game, logic game, strategy game, online game",
+  icons: {
+    icon: "/favicon.svg",
+  },
 };
 
 export default function RootLayout({

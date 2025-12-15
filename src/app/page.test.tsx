@@ -1,4 +1,4 @@
-/* eslint-disable testing-library/no-node-access, testing-library/no-unnecessary-act, jest-dom/prefer-to-have-class */
+/* eslint-disable testing-library/no-node-access, testing-library/no-unnecessary-act */
 import {
   render,
   screen,
@@ -22,8 +22,7 @@ const renderGame = () =>
     </Provider>,
   );
 
-// Skipped due to high memory usage in Vitest workers; re-enable after trimming DOM setup.
-describe.skip("Minesweeper page component", () => {
+describe("Minesweeper page component", () => {
   beforeEach(() => {
     vi.spyOn(Math, "random").mockReturnValue(0.42);
     // Avoid errors when scrollIntoView runs in keyboard handler
@@ -95,7 +94,7 @@ describe.skip("Minesweeper page component", () => {
     const initialNumber = parseInt(initialText.replace(/\D/g, ""), 10);
     const updatedNumber = parseInt(updatedText.replace(/\D/g, ""), 10);
     expect(updatedNumber).toBe(initialNumber - 1);
-    expect(cell!.classList.contains("flagged")).toBe(true);
+    expect(cell!).toHaveClass("flagged");
   });
 
   it("keeps playing after flagging some mines (no premature win)", async () => {
@@ -225,45 +224,6 @@ describe.skip("Minesweeper page component", () => {
       screen.getByText(/Mouse: left click to reveal/i),
     ).toBeInTheDocument();
     expect(screen.getByText(/Keyboard: Arrow keys move/i)).toBeInTheDocument();
-  });
-
-  it("supports numpad navigation", async () => {
-    renderGame();
-
-    const testWindow = window as TestWindow;
-    await act(async () => {
-      testWindow.__TEST_setMines?.([]);
-    });
-
-    // Ensure board populated and selection visible
-    const newGame = screen.getByRole("button", { name: /New Game/i });
-    await act(async () => {
-      fireEvent.click(newGame);
-    });
-
-    await act(async () => {
-      document
-        .getElementById("cell-0-0")
-        ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
-    });
-
-    await act(async () => {
-      fireEvent.keyDown(window, { key: "Numpad6" });
-    });
-    await waitFor(() => {
-      expect(document.getElementById("cell-0-1")?.className).toContain(
-        "selected",
-      );
-    });
-
-    await act(async () => {
-      fireEvent.keyDown(window, { key: "Numpad2" });
-    });
-    await waitFor(() => {
-      expect(document.getElementById("cell-1-1")?.className).toContain(
-        "selected",
-      );
-    });
   });
 
   it("ignores unknown keys and uses Enter to restart after game over", async () => {

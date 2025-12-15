@@ -1,0 +1,20 @@
+#!/bin/sh
+. "$(dirname "$0")/_/husky.sh"
+
+BRANCH="$(git rev-parse --abbrev-ref HEAD)"
+
+if [ "$BRANCH" != "main" ]; then
+  echo "Skipping Vercel deploy hook: current branch is $BRANCH (only main deploys)."
+  exit 0
+fi
+
+if [ -z "$VERCEL_DEPLOY_HOOK" ]; then
+  echo "VERCEL_DEPLOY_HOOK not set; skipping Vercel deploy trigger." >&2
+  exit 0
+fi
+
+echo "Triggering Vercel deploy hook for main..."
+curl -sSf -X POST "$VERCEL_DEPLOY_HOOK" >/dev/null || {
+  echo "Vercel deploy hook failed." >&2
+  exit 1
+}
