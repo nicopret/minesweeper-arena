@@ -1,0 +1,45 @@
+{
+  "$schema": "./node_modules/nx/schemas/nx-schema.json",
+  "npmScope": "minesweeper",
+  "tasksRunnerOptions": {
+    "default": {
+      "runner": "nx/tasks-runners/default",
+      "options": {
+        "cacheableOperations": ["build", "lint", "test"],
+        "cacheDirectory": ".nx/cache"
+      }
+    }
+  },
+  "namedInputs": {
+    "sharedGlobals": [
+      "{workspaceRoot}/package.json",
+      "{workspaceRoot}/package-lock.json",
+      "{workspaceRoot}/tsconfig.base.json"
+    ],
+    "default": [
+      "{projectRoot}/**/*",
+      "!{projectRoot}/.next/**",
+      "!{projectRoot}/dist/**",
+      "!{projectRoot}/tmp/**",
+      "!{projectRoot}/node_modules/**",
+      "sharedGlobals"
+    ]
+  },
+  "targetDefaults": {
+    "lint": {
+      "inputs": ["default"]
+    },
+    "test": {
+      "inputs": ["default", "^default"]
+    },
+    "build": {
+      "inputs": ["default", "^default"]
+    }
+  },
+  "workspaceLayout": {
+    "appsDir": "frontends",
+    "libsDir": "libs"
+  },
+  "defaultBase": "main",
+  "defaultProject": "web"
+}

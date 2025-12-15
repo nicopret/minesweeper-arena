@@ -2,6 +2,7 @@
 
 # dependencies
 /node_modules
+**/node_modules
 /.pnp
 .pnp.*
 .yarn/*
@@ -16,6 +17,11 @@
 # next.js
 /.next/
 /out/
+/frontends/**/.next/
+/frontends/**/out/
+/dist/
+/tmp/
+/.nx/
 
 # production
 /build
@@ -39,3 +45,4 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+frontends/**/next-env.d.ts

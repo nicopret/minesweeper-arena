@@ -9,13 +9,24 @@ const eslintConfig = defineConfig([
   ...nextTs,
   // Override default ignores of eslint-config-next.
   globalIgnores([
-    // Default ignores of eslint-config-next:
+    // Default ignores of eslint-config-next, including nested app roots:
     ".next/**",
+    "frontends/**/.next/**",
     "out/**",
+    "frontends/**/out/**",
     "build/**",
+    "frontends/**/build/**",
     "next-env.d.ts",
+    "frontends/**/next-env.d.ts",
     "coverage/**",
   ]),
+  {
+    settings: {
+      next: {
+        rootDir: ["./frontends/web"],
+      },
+    },
+  },
   {
     files: ["**/*.{test,spec}.{ts,tsx}", "tests/**/*.{ts,tsx}"],
     plugins: {
