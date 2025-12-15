@@ -7,11 +7,20 @@ import {
   act,
 } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { Provider } from "react-redux";
 import Minesweeper from "./page";
+import { store } from "./store/store";
 
 type TestWindow = typeof window & {
   __TEST_setMines?: (mines: Array<[number, number]>) => void;
 };
+
+const renderGame = () =>
+  render(
+    <Provider store={store}>
+      <Minesweeper />
+    </Provider>,
+  );
 
 describe.skip("Minesweeper page component", () => {
   beforeEach(() => {
@@ -25,7 +34,7 @@ describe.skip("Minesweeper page component", () => {
   });
 
   it("renders instructions and controls after mount", async () => {
-    render(<Minesweeper />);
+    renderGame();
 
     await screen.findByText(/How to play/i);
     expect(
@@ -36,7 +45,7 @@ describe.skip("Minesweeper page component", () => {
   });
 
   it("seeds mines via the test hook and shows Game Over when clicking a mine", async () => {
-    render(<Minesweeper />);
+    renderGame();
 
     const testWindow = window as TestWindow;
     expect(typeof testWindow.__TEST_setMines).toBe("function");
@@ -61,7 +70,7 @@ describe.skip("Minesweeper page component", () => {
   });
 
   it("updates flag counter when flagging a cell", async () => {
-    render(<Minesweeper />);
+    renderGame();
 
     const testWindow = window as TestWindow;
     await act(async () => {
@@ -89,7 +98,7 @@ describe.skip("Minesweeper page component", () => {
   });
 
   it("keeps playing after flagging some mines (no premature win)", async () => {
-    render(<Minesweeper />);
+    renderGame();
 
     const testWindow = window as TestWindow;
     await act(async () => {
@@ -123,7 +132,7 @@ describe.skip("Minesweeper page component", () => {
   });
 
   it("updates mine counter when changing difficulty", async () => {
-    render(<Minesweeper />);
+    renderGame();
 
     const counter = await screen.findByText(/🚩/);
     const initial = parseInt(
@@ -144,7 +153,7 @@ describe.skip("Minesweeper page component", () => {
   });
 
   it("moves selection with arrow keys and flags via keyboard", async () => {
-    render(<Minesweeper />);
+    renderGame();
 
     const testWindow = window as TestWindow;
     await act(async () => {
@@ -178,7 +187,7 @@ describe.skip("Minesweeper page component", () => {
   });
 
   it("moves to start/end of row with Home/End keys", async () => {
-    render(<Minesweeper />);
+    renderGame();
 
     const testWindow = window as TestWindow;
     await act(async () => {
@@ -206,7 +215,7 @@ describe.skip("Minesweeper page component", () => {
   });
 
   it("displays how-to-play instructions when game is active", async () => {
-    render(<Minesweeper />);
+    renderGame();
 
     await screen.findByText(/How to play:/i);
     expect(
@@ -216,7 +225,7 @@ describe.skip("Minesweeper page component", () => {
   });
 
   it("toggles difficulty buttons and mines count when selecting medium/hard/easy", async () => {
-    render(<Minesweeper />);
+    renderGame();
 
     const easy = screen.getByRole("button", { name: /Easy \(9x9\)/i });
     const medium = screen.getByRole("button", { name: /Medium \(16x16\)/i });
@@ -265,7 +274,7 @@ describe.skip("Minesweeper page component", () => {
   });
 
   it("supports numpad navigation", async () => {
-    render(<Minesweeper />);
+    renderGame();
 
     const testWindow = window as TestWindow;
     await act(async () => {
@@ -304,7 +313,7 @@ describe.skip("Minesweeper page component", () => {
   });
 
   it("ignores unknown keys and uses Enter to restart after game over", async () => {
-    render(<Minesweeper />);
+    renderGame();
 
     const testWindow = window as TestWindow;
     await act(async () => {
@@ -331,7 +340,7 @@ describe.skip("Minesweeper page component", () => {
   });
 
   it("clicking New Game initializes a fresh board", async () => {
-    render(<Minesweeper />);
+    renderGame();
 
     const newGame = screen.getByRole("button", { name: /New Game/i });
     await act(async () => {
