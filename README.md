@@ -28,6 +28,17 @@ npm run dev
 # open http://localhost:3000
 ```
 
+App code now lives under `frontends/web`, managed by Nx.
+
+### Nx workspace
+
+The repo is managed by Nx (project name: `web`). Common commands:
+
+- `npm run dev` (or `npx nx serve web`) to start the Next.js dev server
+- `npm run build` (or `npx nx build web`) to create a production build
+- `npm run start` to serve the production build
+- `npx nx graph` to visualize the project graph
+
 ### Git Hooks (pre-commit lint/format)
 
 ```bash
@@ -39,7 +50,7 @@ The pre-commit hook runs eslint (with fix) and Prettier on staged files via lint
 
 ## Testing
 
-- `npm run test` — Vitest unit/integration suite
+- `npm run test` — Vitest unit/integration suite (runs `nx test web`)
 - `npm run test:watch` — watch mode
 - `npm run test:coverage` — coverage report
 - `npm run test:e2e` — Playwright E2E tests (first run may need `npx playwright install --with-deps`)

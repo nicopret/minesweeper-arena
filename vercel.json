@@ -1,0 +1,23 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "github": {
+    "enabled": true,
+    "autoJobCancelation": true,
+    "silent": true,
+    "ignoredPaths": [
+      "**",
+      "!frontends/web/**",
+      "!package.json",
+      "!package-lock.json",
+      "!nx.json",
+      "!project.json",
+      "!tsconfig.base.json",
+      "!vitest.config.mts",
+      "!eslint.config.mjs",
+      "!vercel.json"
+    ]
+  },
+  "framework": "nextjs",
+  "buildCommand": "cd frontends/web && npx next build",
+  "outputDirectory": "frontends/web/.next"
+}

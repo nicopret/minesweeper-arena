@@ -1,0 +1,61 @@
+{
+  "$schema": "./node_modules/nx/schemas/project-schema.json",
+  "name": "web",
+  "projectType": "application",
+  "sourceRoot": "frontends/web/src",
+  "root": "frontends/web",
+  "targets": {
+    "build": {
+      "executor": "@nx/next:build",
+      "outputs": ["{options.outputPath}"],
+      "options": {
+        "outputPath": "dist/apps/web"
+      },
+      "configurations": {
+        "development": {
+          "outputPath": "dist/apps/web"
+        },
+        "production": {
+          "outputPath": "dist/apps/web"
+        }
+      },
+      "defaultConfiguration": "production"
+    },
+    "serve": {
+      "executor": "@nx/next:server",
+      "options": {
+        "buildTarget": "web:build",
+        "dev": true,
+        "port": 3000
+      }
+    },
+    "start": {
+      "executor": "@nx/next:server",
+      "options": {
+        "buildTarget": "web:build:production",
+        "dev": false,
+        "port": 3000
+      }
+    },
+    "lint": {
+      "executor": "@nx/eslint:lint",
+      "outputs": ["{options.outputFile}"],
+      "options": {
+        "lintFilePatterns": [
+          "frontends/web/src/**/*.ts",
+          "frontends/web/src/**/*.tsx",
+          "frontends/web/*.ts",
+          "frontends/web/*.tsx"
+        ]
+      }
+    },
+    "test": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "vitest run --config vitest.config.mts",
+        "parallel": false
+      }
+    }
+  },
+  "tags": []
+}

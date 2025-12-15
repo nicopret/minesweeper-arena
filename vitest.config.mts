@@ -1,19 +1,20 @@
 import { defineConfig } from "vitest/config";
+import { resolve } from "node:path";
+
+const webRoot = resolve(__dirname, "frontends/web");
 
 export default defineConfig({
+  root: webRoot,
   test: {
     environment: "jsdom",
     globals: true,
-    setupFiles: "src/setupTests.ts",
+    setupFiles: "./src/setupTests.ts",
     // Only pick up our unit/integration tests, never anything in node_modules
-    include: [
-      "src/**/*.{test,spec}.{ts,tsx}",
-      "tests/**/*.{test,spec}.{ts,tsx}",
-    ],
+    include: ["src/**/*.{test,spec}.{ts,tsx}"],
     exclude: [
       "**/node_modules/**",
-      "tests/playwright/**",
-      "playwright.config.ts",
+      "../../tests/playwright/**",
+      "../../playwright.config.ts",
     ],
     coverage: {
       provider: "istanbul",
