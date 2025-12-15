@@ -58,6 +58,10 @@
     "typescript": "^5",
     "vitest": "^4.0.15"
   },
+  "overrides": {
+    "@rollup/plugin-commonjs": "^28.0.0",
+    "glob": "^10.4.5"
+  },
   "lint-staged": {
     "**/*.{js,jsx,ts,tsx}": [
       "eslint --fix --max-warnings=0",
