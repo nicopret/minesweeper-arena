@@ -5,5 +5,11 @@
     {
       "path": "./frontends/web/tsconfig.json"
     }
-  ]
+  ],
+  "ts-node": {
+    "compilerOptions": {
+      "module": "commonjs",
+      "moduleResolution": "node10"
+    }
+  }
 }
