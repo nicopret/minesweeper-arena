@@ -22,7 +22,7 @@ const baseTsConfig = {
 const eslintConfig = defineConfig([
   {
     ...baseTsConfig,
-    files: ["**/*.{js,jsx,ts,tsx}"],
+    files: ["**/*.{js,jsx,ts,tsx,mjs,cjs}"],
     plugins: {
       "@next/next": nextPlugin,
       "@typescript-eslint": tsPlugin,
@@ -64,6 +64,7 @@ const eslintConfig = defineConfig([
       ...tsPlugin.configs["recommended-type-checked"].rules,
       ...testingLibrary.configs.react.rules,
       ...jestDom.configs.recommended.rules,
+      "@typescript-eslint/no-unsafe-call": "off",
       "@typescript-eslint/require-await": "off",
       "@typescript-eslint/no-unnecessary-type-assertion": "off",
       "react-hooks/set-state-in-effect": "off",

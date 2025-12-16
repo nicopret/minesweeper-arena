@@ -12,10 +12,11 @@ const config: StorybookConfig = {
   framework: {
     name: "@storybook/nextjs",
     options: {
-      appDirectory: true,
+      // Avoid Next app-router integration, which breaks Storybook's webpack child compiler in this setup.
+      appDirectory: false,
       nextConfigPath: "../next.config.ts",
       builder: {
-        useSWC: false,
+        useSWC: true,
       },
     },
   },
@@ -29,6 +30,8 @@ const config: StorybookConfig = {
       ...(config.resolve.alias || {}),
       "next/config": path.resolve(__dirname, "./next-config.js"),
     };
+    // Use in-memory cache to avoid filesystem cache shutdown bug seen with Storybook/Next on Node 22.
+    config.cache = { type: "memory" };
     // ReactRefreshPlugin breaks Storybook's HTML child compiler; remove it here.
     config.plugins = (config.plugins || []).filter(
       (plugin) => plugin?.constructor?.name !== "ReactRefreshPlugin",

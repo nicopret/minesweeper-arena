@@ -1,4 +1,5 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
+import { Capacitor } from "@capacitor/core";
 import GameStatusLabel from "../components/labels/GameStatusLabel";
 import { useAppSelector } from "../store/hooks";
 
@@ -14,6 +15,11 @@ const GameResult = ({ gameWon }: { gameWon: boolean }): React.JSX.Element => (
 
 const GameInfoContainer = (): React.JSX.Element => {
   const { gameOver, gameWon } = useAppSelector((state) => state.game);
+  const [isNativeMobile, setIsNativeMobile] = useState(false);
+
+  useEffect(() => {
+    setIsNativeMobile(Capacitor.isNativePlatform?.() ?? false);
+  }, []);
 
   if (gameOver) {
     return <GameResult gameWon={gameWon} />;
@@ -24,8 +30,21 @@ const GameInfoContainer = (): React.JSX.Element => {
       <p className="mb-1">
         <strong>How to play:</strong>
       </p>
-      <p className="mb-0">Mouse: left click to reveal • Right click to flag</p>
-      <p className="mb-0">Keyboard: Arrow keys move • Space reveal • X flag</p>
+      {isNativeMobile ? (
+        <p className="mb-0">
+          Tap to reveal — Long press to flag — Drag to move the board on larger
+          grids
+        </p>
+      ) : (
+        <>
+          <p className="mb-0">
+            Mouse: left click to reveal — Right click to flag
+          </p>
+          <p className="mb-0">
+            Keyboard: Arrow keys move — Space reveals — X flags
+          </p>
+        </>
+      )}
     </div>
   );
 };
