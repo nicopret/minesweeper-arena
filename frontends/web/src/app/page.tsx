@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useCallback, useEffect, useRef, useState } from "react";
+import { Capacitor } from "@capacitor/core";
 import {
   revealCell as revealCellAction,
   setSelection,
@@ -40,10 +41,12 @@ export default function Minesweeper() {
   const gameCardRef = useRef<HTMLDivElement | null>(null);
   const [hasMounted, setHasMounted] = useState(false);
   const autoClickRanFor = useRef(0);
+  const [isNativeMobile, setIsNativeMobile] = useState(false);
 
   // Track client mount to keep SSR/CSR consistent
   useEffect(() => {
     setHasMounted(true);
+    setIsNativeMobile(Capacitor.isNativePlatform?.() ?? false);
   }, []);
 
   // Default selection to the top-left in tests to make behavior deterministic
@@ -62,6 +65,12 @@ export default function Minesweeper() {
   // Responsive cell sizing: compute cell size to fit board inside the card
   useEffect(() => {
     const updateCellSize = () => {
+      // On native mobile, keep the easy-grid size and allow panning for larger grids.
+      if (isNativeMobile && config.cols > 9) {
+        setCellSize(30);
+        return;
+      }
+
       const gapTotal = (config.cols - 1) * 2; // gap is 2px
       const paddingTotal = 10; // board-container padding left+right (approx)
       const containerWidth =
@@ -78,7 +87,7 @@ export default function Minesweeper() {
     updateCellSize();
     window.addEventListener("resize", updateCellSize);
     return () => window.removeEventListener("resize", updateCellSize);
-  }, [config.cols]);
+  }, [config.cols, isNativeMobile]);
 
   useEffect(() => {
     let interval: ReturnType<typeof setInterval> | undefined;

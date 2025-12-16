@@ -146,14 +146,14 @@ a.secondary {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 20px;
+  padding: 16px;
 }
 
 .gameCard {
   background: white;
   border-radius: 15px;
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
-  padding: 30px;
+  padding: 22px;
   max-width: 100%;
 }
 
@@ -236,12 +236,36 @@ a.secondary {
   border-radius: 8px;
   grid-template-columns: repeat(var(--cols, 0), var(--cell-size, 30px));
   grid-auto-rows: var(--cell-size, 30px);
-  width: 100%;
+  width: max-content;
+  justify-content: start;
+}
+
+.centerBoard {
+  margin-left: auto;
+  margin-right: auto;
   justify-content: center;
 }
 
 .boardWrapper {
-  overflow-x: auto;
-  margin-top: 20px;
+  overflow: auto;
+  margin-top: 16px;
   max-width: 100%;
+  touch-action: pan-x pan-y;
+  -webkit-overflow-scrolling: touch;
+  cursor: grab;
+}
+
+@media (max-width: 600px) {
+  .gameContainer {
+    padding: 10px;
+  }
+
+  .gameCard {
+    padding: 16px;
+  }
+
+  .boardWrapper {
+    margin-top: 12px;
+    touch-action: pan-x pan-y;
+  }
 }
