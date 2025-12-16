@@ -1,11 +1,11 @@
 import type { NextConfig } from "next";
 
-const isStorybook = process.env.STORYBOOK === "true";
+const isMobileExport = process.env.NEXT_EXPORT === "true";
 
 const nextConfig: NextConfig = {
   /* config options here */
-  // React Compiler currently breaks Storybook's webpack pipeline, so turn it off there.
-  reactCompiler: isStorybook ? false : true,
+  // Enable static export when requested (used by mobile:export script).
+  output: isMobileExport ? "export" : undefined,
 };
 
 export default nextConfig;
