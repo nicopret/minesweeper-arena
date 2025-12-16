@@ -61,7 +61,8 @@
       "options": {
         "command": "node -r ./frontends/web/.storybook/register-next-config.cjs ./node_modules/storybook/bin/index.cjs dev -p 4400 -c frontends/web/.storybook --disable-telemetry",
         "env": {
-          "STORYBOOK_DISABLE_TELEMETRY": "1"
+          "STORYBOOK_DISABLE_TELEMETRY": "1",
+          "STORYBOOK": "true"
         }
       }
     },
@@ -71,7 +72,8 @@
       "options": {
         "command": "node -r ./frontends/web/.storybook/register-next-config.cjs ./node_modules/storybook/bin/index.cjs build -c frontends/web/.storybook -o dist/storybook/web --quiet --disable-telemetry",
         "env": {
-          "STORYBOOK_DISABLE_TELEMETRY": "1"
+          "STORYBOOK_DISABLE_TELEMETRY": "1",
+          "STORYBOOK": "true"
         }
       }
     },
@@ -80,7 +82,8 @@
       "options": {
         "command": "node -r ./frontends/web/.storybook/register-next-config.cjs ./node_modules/@storybook/test-runner/dist/test-storybook.js --config-dir frontends/web/.storybook",
         "env": {
-          "STORYBOOK_DISABLE_TELEMETRY": "1"
+          "STORYBOOK_DISABLE_TELEMETRY": "1",
+          "STORYBOOK": "true"
         }
       }
     }
