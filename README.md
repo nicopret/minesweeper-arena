@@ -56,6 +56,16 @@ The pre-commit hook runs eslint (with fix) and Prettier on staged files via lint
 - `npm run test:e2e` — Playwright E2E tests (first run may need `npx playwright install --with-deps`)
 - `npm run test:full` — run Vitest then Playwright
 
+## Desktop (Electron)
+
+Run the desktop client (reuses the web UI via the local Next dev server):
+
+```bash
+npm run desktop:dev
+```
+
+The script starts `nx serve web` on port 4000 (if not already running) and opens an Electron window pointed at it. Override `NEXT_PORT`/`NEXT_HOST`/`NEXT_URL` to point the desktop shell at a different server.
+
 ## CI
 
 GitHub Actions workflow `.github/workflows/ci.yml` runs on Node 20, installs deps via `npm ci`, executes Vitest, then Playwright (GitHub reporter). Use `npm run test` locally to mirror the unit step, or `npm run test:full` to exercise both suites before pushing.
