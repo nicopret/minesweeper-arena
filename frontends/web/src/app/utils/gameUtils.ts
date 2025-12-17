@@ -4,6 +4,17 @@ import type { GameState } from "../store/gameSlice";
 export type DifficultyConfig = { rows: number; cols: number; mines: number };
 
 export class GameUtils {
+  static calculateScore(
+    config: DifficultyConfig,
+    timerSeconds: number,
+  ): number {
+    const safeTimerSeconds = Math.max(0, timerSeconds);
+    const base = config.mines * 1000;
+    const sizeBonus = config.rows * config.cols * 10;
+    const timePenalty = safeTimerSeconds * 15;
+    return Math.max(0, Math.round(base + sizeBonus - timePenalty));
+  }
+
   static createEmptyState(config: DifficultyConfig): {
     board: number[][];
     revealed: boolean[][];

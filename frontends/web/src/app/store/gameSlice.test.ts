@@ -125,6 +125,7 @@ describe("revealCell", () => {
 
     expect(next.gameOver).toBe(true);
     expect(next.gameWon).toBe(false);
+    expect(next.score).toBeNull();
     expect(next.revealed[0][0]).toBe(true);
     expect(next.revealed[2][2]).toBe(true); // all mines revealed on loss
     expect(next.isRunning).toBe(false);
@@ -148,6 +149,7 @@ describe("revealCell", () => {
 
     expect(final.gameWon).toBe(true);
     expect(final.gameOver).toBe(true);
+    expect(final.score).toEqual(expect.any(Number));
     expect(final.revealed.every((row) => row.every(Boolean))).toBe(true);
   });
 });
@@ -188,6 +190,7 @@ describe("toggleFlag", () => {
 
     expect(afterSecondFlag.gameWon).toBe(true);
     expect(afterSecondFlag.gameOver).toBe(true);
+    expect(afterSecondFlag.score).toEqual(expect.any(Number));
     expect(afterSecondFlag.revealed.every((row) => row.every(Boolean))).toBe(
       true,
     );

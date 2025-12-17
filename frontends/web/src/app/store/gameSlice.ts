@@ -29,6 +29,7 @@ export type GameState = {
   flagged: boolean[][];
   gameOver: boolean;
   gameWon: boolean;
+  score: number | null;
   firstClick: boolean;
   timer: number;
   flagCount: number;
@@ -69,6 +70,7 @@ const buildState = (
     flagged,
     gameOver: false,
     gameWon: false,
+    score: null,
     firstClick: true,
     timer: 0,
     flagCount: 0,
@@ -87,6 +89,9 @@ const endGame = (
   state.gameOver = true;
   state.gameWon = won;
   state.isRunning = false;
+  state.score = won
+    ? GameUtils.calculateScore(state.config, state.timer)
+    : null;
 
   const newRevealed = state.revealed.map((row) => [...row]);
   for (let i = 0; i < state.config.rows; i++) {
@@ -221,6 +226,7 @@ const gameSlice = createSlice({
       state.isRunning = false;
       state.gameOver = false;
       state.gameWon = false;
+      state.score = null;
       state.timer = 0;
       state.flagCount = 0;
     },

@@ -130,6 +130,7 @@ describe("Minesweeper page component", () => {
     });
 
     expect(screen.getByTestId("game-status")).toHaveTextContent(/You Won/i);
+    expect(screen.getByTestId("game-status")).toHaveTextContent(/Score:/i);
   });
 
   it("updates mine counter when changing difficulty", async () => {
