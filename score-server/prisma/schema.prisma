@@ -1,0 +1,70 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  displayName String?   @map("display_name")
+  isGuest     Boolean   @default(false) @map("is_guest")
+  identities  AuthIdentity[]
+  runs        Run[]
+
+  @@map("users")
+}
+
+model AuthIdentity {
+  id             String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId         String   @map("user_id") @db.Uuid
+  provider       String
+  providerUserId String   @map("provider_user_id")
+  email          String?
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@unique([provider, providerUserId])
+  @@unique([userId, provider, providerUserId])
+
+  @@map("auth_identities")
+}
+
+model Run {
+  id             String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId         String   @map("user_id") @db.Uuid
+  mode           String
+  secondsTaken   Int      @map("seconds_taken")
+  bombsMarked    Int      @map("bombs_marked")
+  totalCells     Int      @map("total_cells")
+  scoreNumeric   Float    @map("score_numeric")
+  clientPlatform String   @map("client_platform")
+  clientVersion  String?  @map("client_version")
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+
+  @@map("runs")
+}
+
+model BestRun {
+  userId       String   @map("user_id") @db.Uuid
+  mode         String
+  runId        String   @map("run_id") @db.Uuid
+  scoreNumeric Float    @map("score_numeric")
+  updatedAt    DateTime @default(now()) @map("updated_at") @db.Timestamptz(6)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  run  Run  @relation(fields: [runId], references: [id], onDelete: Cascade)
+
+  @@id([userId, mode])
+  @@index([mode, scoreNumeric])
+  @@map("best_runs")
+}

@@ -1,0 +1,35 @@
+{
+  "name": "minesweeper-score-server",
+  "description": "Fastify API server for Minesweeper scores (Postgres + JWT)",
+  "repository": "https://github.com/NicoPretorius/minesweeper-arena",
+  "keywords": ["fastify", "postgres", "prisma", "jwt"],
+  "addons": ["heroku-postgresql"],
+  "env": {
+    "JWT_SECRET": {
+      "description": "Secret used to sign JWTs (generate a long random value).",
+      "required": true
+    },
+    "GOOGLE_CLIENT_ID": {
+      "description": "Google OAuth client ID used to verify Google ID tokens server-side.",
+      "required": false
+    },
+    "FACEBOOK_APP_ID": {
+      "description": "Facebook App ID used to verify Facebook access tokens.",
+      "required": false
+    },
+    "FACEBOOK_APP_SECRET": {
+      "description": "Facebook App Secret used to verify Facebook access tokens.",
+      "required": false
+    },
+    "DATABASE_SSL": {
+      "description": "Whether to enable SSL for Postgres connections.",
+      "value": "true",
+      "required": false
+    },
+    "JWT_EXPIRES_IN": {
+      "description": "JWT expiry (e.g. 7d).",
+      "value": "7d",
+      "required": false
+    }
+  }
+}

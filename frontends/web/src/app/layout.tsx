@@ -1,6 +1,7 @@
 import "bootstrap/dist/css/bootstrap.min.css";
 import "@fortawesome/fontawesome-free/css/all.min.css";
 import { Providers } from "./providers";
+import Script from "next/script";
 
 export const metadata = {
   title: "Minesweeper Game - Classic Puzzle Game",
@@ -20,6 +21,15 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body>
+        <Script
+          src="https://accounts.google.com/gsi/client"
+          strategy="afterInteractive"
+        />
+        <Script
+          src="https://connect.facebook.net/en_US/sdk.js"
+          strategy="afterInteractive"
+          crossOrigin="anonymous"
+        />
         <Providers>{children}</Providers>
       </body>
     </html>

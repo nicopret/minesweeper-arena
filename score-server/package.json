@@ -1,0 +1,37 @@
+{
+  "name": "score-server",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Fastify API server for Minesweeper scores (Heroku-ready, Postgres-backed)",
+  "main": "src/index.js",
+  "type": "commonjs",
+  "engines": {
+    "node": ">=20.x"
+  },
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "nodemon src/index.js",
+    "lint": "eslint .",
+    "prisma:generate": "prisma generate --schema prisma/schema.prisma",
+    "prisma:migrate": "prisma migrate deploy --schema prisma/schema.prisma",
+    "postinstall": "prisma generate --schema prisma/schema.prisma"
+  },
+  "dependencies": {
+    "@fastify/cors": "^10.0.1",
+    "@fastify/jwt": "^9.0.0",
+    "@prisma/client": "^6.2.1",
+    "dotenv": "^16.4.7",
+    "fastify": "^5.0.0",
+    "fastify-plugin": "^5.0.1",
+    "google-auth-library": "^10.3.0",
+    "minesweeper": "file:..",
+    "prisma": "^6.2.1",
+    "pg": "^8.13.1"
+  },
+  "devDependencies": {
+    "eslint": "^9.39.1",
+    "eslint-config-prettier": "^9.1.0",
+    "eslint-plugin-import": "^2.31.0",
+    "nodemon": "^3.1.9"
+  }
+}

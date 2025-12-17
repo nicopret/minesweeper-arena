@@ -15,6 +15,13 @@ import TimerContainer from "./containers/TimerContainer";
 import GameInfoContainer from "./containers/GameInfoContainer";
 import DifficultyOptionContainer from "./containers/DifficultyOptionContainer";
 import BoardContainer from "./containers/BoardContainer";
+import AuthContainer from "./containers/AuthContainer";
+import LeaderboardContainer from "./containers/LeaderboardContainer";
+import {
+  submitRunAndMaybeUpdateLeaderboard,
+  setMessage,
+} from "./store/scoreServerSlice";
+import { getModeFromGameState } from "./utils/modeUtils";
 import styles from "./page.module.css";
 
 type TestWindow = typeof window & {
@@ -30,10 +37,14 @@ export default function Minesweeper() {
     revealed,
     flagged,
     gameOver,
+    gameWon,
     isRunning,
     selectedRow,
     selectedCol,
     resetId,
+    timer,
+    flagCount,
+    difficulty,
   } = gameState;
 
   const isTestEnv = process.env.NODE_ENV === "test";
@@ -42,6 +53,12 @@ export default function Minesweeper() {
   const [hasMounted, setHasMounted] = useState(false);
   const autoClickRanFor = useRef(0);
   const [isNativeMobile, setIsNativeMobile] = useState(false);
+  const lastSubmittedFor = useRef<number>(-1);
+  const authToken = useAppSelector((state) => state.scoreServer.token);
+  const submitStatus = useAppSelector(
+    (state) => state.scoreServer.submitStatus,
+  );
+  const lastSubmit = useAppSelector((state) => state.scoreServer.lastSubmit);
 
   // Track client mount to keep SSR/CSR consistent
   useEffect(() => {
@@ -100,6 +117,49 @@ export default function Minesweeper() {
       if (interval) clearInterval(interval);
     };
   }, [dispatch, isRunning, gameOver]);
+
+  // Submit run on win (only once per resetId)
+  useEffect(() => {
+    if (!gameOver || !gameWon) return;
+    if (lastSubmittedFor.current === resetId) return;
+    lastSubmittedFor.current = resetId;
+
+    if (!authToken) {
+      void dispatch(
+        setMessage(
+          "You won, but you’re playing as a guest. Log in to submit runs.",
+        ),
+      );
+      return;
+    }
+
+    const mode = getModeFromGameState({ difficulty, config });
+    const totalCells = config.rows * config.cols;
+    const clientVersion = process.env.NEXT_PUBLIC_CLIENT_VERSION;
+
+    void dispatch(
+      submitRunAndMaybeUpdateLeaderboard({
+        payload: {
+          mode,
+          secondsTaken: timer,
+          bombsMarked: flagCount,
+          totalCells,
+          clientPlatform: "web",
+          clientVersion,
+        },
+      }),
+    );
+  }, [
+    authToken,
+    config,
+    difficulty,
+    dispatch,
+    flagCount,
+    gameOver,
+    gameWon,
+    resetId,
+    timer,
+  ]);
 
   // Expose a test hook to set a deterministic board from Playwright/tests (always on in dev/test)
   useEffect(() => {
@@ -326,7 +386,18 @@ export default function Minesweeper() {
 
           <TimerContainer onNewGame={handleNewGame} />
 
+          <AuthContainer />
+
           <GameInfoContainer />
+
+          {gameOver && gameWon && submitStatus === "succeeded" && lastSubmit ? (
+            <div className="alert alert-success py-2 px-3 mb-3" role="alert">
+              Submitted score: <strong>{lastSubmit.score.toFixed(4)}</strong>
+              {lastSubmit.isPb ? " (PB!)" : ""}
+            </div>
+          ) : null}
+
+          <LeaderboardContainer />
 
           <DifficultyOptionContainer />
 

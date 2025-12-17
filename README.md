@@ -30,6 +30,71 @@ npm run dev
 
 App code now lives under `frontends/web`, managed by Nx.
 
+### Shared environment variables
+
+This repo uses `score-server/.env` as the shared environment file for both the API server and the frontends.
+The root npm scripts (`npm run dev`, `npm run build`, `npm run start`, etc.) preload that file via `scripts/with-score-env.cjs`,
+so you generally do not need separate frontend `.env` files.
+
+## Deploying the Score Server to Heroku
+
+The Heroku deployment in this repo is wired to deploy **only** the API server under `score-server`, while pushing from the **repo root**.
+
+### Prerequisites
+
+- Install the Heroku CLI
+- Have access to the Heroku app (example: `minesweeper-arena`)
+
+### 1) Log in and attach the Heroku git remote (from repo root)
+
+```bash
+heroku login
+heroku git:remote -a minesweeper-arena
+```
+
+### 2) Add Postgres and confirm `DATABASE_URL`
+
+```bash
+heroku addons:create heroku-postgresql -a minesweeper-arena
+heroku config:get DATABASE_URL -a minesweeper-arena
+```
+
+Heroku Postgres automatically provides `DATABASE_URL`.
+
+### 3) Set required config vars
+
+At minimum you must set `JWT_SECRET`. Provider values are required only if you enable those login methods.
+
+```bash
+heroku config:set JWT_SECRET="<generated-long-random-string>" -a minesweeper-arena
+heroku config:set GOOGLE_CLIENT_ID="<google client id>" -a minesweeper-arena
+heroku config:set FACEBOOK_APP_ID="<facebook app id>" -a minesweeper-arena
+heroku config:set FACEBOOK_APP_SECRET="<facebook app secret>" -a minesweeper-arena
+```
+
+Optional:
+
+```bash
+heroku config:set DATABASE_SSL=true JWT_EXPIRES_IN=7d -a minesweeper-arena
+```
+
+### 4) Deploy
+
+```bash
+git push heroku main
+```
+
+### How the deploy is wired
+
+- `Procfile` runs the API server via `web: npm start --prefix score-server`
+- `Procfile` runs migrations on release via `release: npm run server:deploy-schema`
+- Root `heroku-postbuild` installs API dependencies under `score-server`
+
+### Troubleshooting
+
+- Stream logs: `heroku logs --tail -a minesweeper-arena`
+- Verify access: `heroku apps:info -a minesweeper-arena`
+
 ### Nx workspace
 
 The repo is managed by Nx (project name: `web`). Common commands:
