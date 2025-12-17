@@ -15,6 +15,7 @@ import TimerContainer from "./containers/TimerContainer";
 import GameInfoContainer from "./containers/GameInfoContainer";
 import DifficultyOptionContainer from "./containers/DifficultyOptionContainer";
 import BoardContainer from "./containers/BoardContainer";
+import GoogleLoginPanel from "./components/auth/GoogleLoginPanel";
 import styles from "./page.module.css";
 
 type TestWindow = typeof window & {
@@ -319,6 +320,9 @@ export default function Minesweeper() {
     <>
       <div className={`${styles.gameContainer} game-container`}>
         <div className={`${styles.gameCard} game-card`} ref={gameCardRef}>
+          <div className="d-flex justify-content-end mb-2">
+            <GoogleLoginPanel />
+          </div>
           <h1 className="text-center mb-4 display-5 fw-bold">
             <i className="fa-solid fa-bomb me-2" aria-hidden="true" />
             Minesweeper

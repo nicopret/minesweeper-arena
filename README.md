@@ -56,6 +56,23 @@ The pre-commit hook runs eslint (with fix) and Prettier on staged files via lint
 - `npm run test:e2e` — Playwright E2E tests (first run may need `npx playwright install --with-deps`)
 - `npm run test:full` — run Vitest then Playwright
 
+## Google Login (frontend)
+
+The web UI supports Google login. On the web it uses Google Identity Services (GIS). On the Capacitor Android app it uses a native Google Auth plugin.
+
+1. Create a Google OAuth Client ID (Web application) in Google Cloud Console.
+2. Add the client id to `frontends/web/.env.local`:
+
+```bash
+NEXT_PUBLIC_GOOGLE_CLIENT_ID="YOUR_GOOGLE_CLIENT_ID"
+```
+
+After restarting `npm run dev`, the “Sign in with Google” button shows at the top of the game card, and the UI displays `Hi, <firstName>` after a successful sign-in.
+
+### Mobile (Capacitor) notes
+
+Bundled static assets run inside a WebView with a non-standard origin (often `capacitor://localhost`), so web-based GIS sign-in is unreliable there. The mobile app uses a native sign-in flow instead; see `frontends/mobile/README.md` for setup.
+
 ## Desktop (Electron)
 
 Run the desktop client (reuses the web UI via the local Next dev server):
