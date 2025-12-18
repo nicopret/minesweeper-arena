@@ -3,7 +3,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { Capacitor } from "@capacitor/core";
 import { useAppDispatch, useAppSelector } from "../../store/hooks";
-import { clearUser, setUser } from "../../store/authSlice";
+import { clearUser, setHighscores, setUser } from "../../store/authSlice";
 import { decodeJwtPayload } from "../../utils/jwtUtils";
 
 type GoogleCredentialResponse = {
@@ -108,6 +108,7 @@ export default function GoogleLoginPanel() {
   const initializedRef = useRef(false);
   const [error, setError] = useState<string | null>(null);
   const [identityLoading, setIdentityLoading] = useState(false);
+  const [highscoresLoading, setHighscoresLoading] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement | null>(null);
   const avatarButtonRef = useRef<HTMLButtonElement | null>(null);
@@ -147,6 +148,88 @@ export default function GoogleLoginPanel() {
       setIdentityLoading(false);
     }
   };
+
+  useEffect(() => {
+    if (!user?.userId) return;
+    if (!scoreboardApiBase) return;
+    const userId = user.userId;
+    let cancelled = false;
+    const fetchHighscores = async () => {
+      const base = scoreboardApiBase.replace(/\/$/, "");
+      const levels = ["easy-9x9", "medium-16x16", "hard-16x30"];
+      type ScoreboardItem = {
+        highScore?: number | string;
+        updatedAt?: string | number | null;
+        updatedAtMs?: string | number | null;
+        attempts?: number;
+        bestTimeMs?: number;
+      };
+      const results: {
+        levelId: string;
+        highScore?: number;
+        updatedAt?: string | number | null;
+        attempts?: number;
+        bestTimeMs?: number;
+      }[] = [];
+      try {
+        setHighscoresLoading(true);
+        for (const levelId of levels) {
+          if (cancelled) break;
+          try {
+            const res = await fetch(
+              `${base}/${encodeURIComponent(userId)}/minesweeper/${encodeURIComponent(levelId)}`,
+              { method: "GET" },
+            );
+            if (!res.ok) continue;
+            const data = (await res.json()) as { items?: ScoreboardItem[] };
+            const items = Array.isArray(data.items) ? data.items : [];
+            const first = items[0];
+            if (first) {
+              const hsRaw = first.highScore;
+              const highScore = hsRaw;
+              results.push({
+                levelId,
+                highScore:
+                  typeof highScore === "number"
+                    ? highScore
+                    : typeof highScore === "string"
+                      ? Number(highScore)
+                      : undefined,
+                updatedAt:
+                  typeof first.updatedAt === "string" ||
+                  typeof first.updatedAt === "number"
+                    ? first.updatedAt
+                    : typeof first.updatedAtMs === "string" ||
+                        typeof first.updatedAtMs === "number"
+                      ? first.updatedAtMs
+                      : null,
+                attempts:
+                  typeof first.attempts === "number"
+                    ? first.attempts
+                    : undefined,
+                bestTimeMs:
+                  typeof first.bestTimeMs === "number"
+                    ? first.bestTimeMs
+                    : undefined,
+              });
+            }
+          } catch (err) {
+            console.warn("Failed to fetch highscores for level", levelId, err);
+          }
+        }
+      } finally {
+        if (!cancelled) {
+          results.sort((a, b) => (b.highScore ?? 0) - (a.highScore ?? 0));
+          dispatch(setHighscores(results));
+          setHighscoresLoading(false);
+        }
+      }
+    };
+    void fetchHighscores();
+    return () => {
+      cancelled = true;
+    };
+  }, [dispatch, scoreboardApiBase, user?.userId]);
 
   useEffect(() => {
     if (!menuOpen) return;
@@ -298,10 +381,8 @@ export default function GoogleLoginPanel() {
           )}
         </button>
 
-        {user.userId ? (
-          <div className="small text-muted text-end mt-1">
-            User ID: {user.userId}
-          </div>
+        {highscoresLoading ? (
+          <div className="small text-muted text-end">Loading highscores…</div>
         ) : null}
 
         {menuOpen ? (
@@ -455,6 +536,9 @@ export default function GoogleLoginPanel() {
       ) : null}
       {identityLoading ? (
         <div className="small text-muted">Syncing scoreboard identity…</div>
+      ) : null}
+      {highscoresLoading ? (
+        <div className="small text-muted">Loading highscores…</div>
       ) : null}
     </div>
   );

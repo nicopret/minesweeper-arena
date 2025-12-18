@@ -19,6 +19,7 @@ const BoardContainer = ({
   const gameState = useAppSelector((state) => state.game);
   const { config, board } = gameState;
   const isEasyBoard = config.rows === 9 && config.cols === 9;
+  const isMediumBoard = config.rows === 16 && config.cols === 16;
 
   const handleCellClick = (row: number, col: number): void => {
     dispatch(setSelection({ row, col }));
@@ -46,7 +47,9 @@ const BoardContainer = ({
   return (
     <div className={`${styles.boardWrapper} board-wrapper`}>
       <div
-        className={`${styles.boardContainer} ${isEasyBoard ? styles.centerBoard : ""} board-container`}
+        className={`${styles.boardContainer} ${
+          isEasyBoard || isMediumBoard ? styles.centerBoard : ""
+        } board-container`}
         style={
           {
             "--cell-size": `${cellSize}px`,

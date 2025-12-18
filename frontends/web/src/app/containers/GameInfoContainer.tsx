@@ -48,10 +48,8 @@ const GameInfoContainer = (): React.JSX.Element => {
   }
 
   return (
-    <div className="mb-3 text-center text-muted small">
-      <p className="mb-1">
-        <strong>How to play:</strong>
-      </p>
+    <div className="mb-3 text-center">
+      <h5 className="mb-2">How to play</h5>
       {isNativeMobile ? (
         <p className="mb-0">
           Tap to reveal — Long press to flag — Drag to move the board on larger

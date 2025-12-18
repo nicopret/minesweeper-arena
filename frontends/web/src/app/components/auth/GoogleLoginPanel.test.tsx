@@ -1,12 +1,17 @@
 import React from "react";
 import { Provider } from "react-redux";
-import { describe, expect, it, vi } from "vitest";
-import { fireEvent, render, screen } from "@testing-library/react";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { fireEvent, render, screen, act } from "@testing-library/react";
 import GoogleLoginPanel from "./GoogleLoginPanel";
 import { store } from "../../store/store";
-import { setUser } from "../../store/authSlice";
+import { clearUser, setHighscores, setUser } from "../../store/authSlice";
 
 describe("GoogleLoginPanel", () => {
+  afterEach(() => {
+    store.dispatch(clearUser());
+    store.dispatch(setHighscores([]));
+  });
+
   it("shows an avatar button when logged in and reveals logout option on click", async () => {
     process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID = "test-client-id";
 
@@ -20,12 +25,14 @@ describe("GoogleLoginPanel", () => {
       },
     };
 
-    store.dispatch(
-      setUser({
-        firstName: "Nico",
-        pictureUrl: "https://example.com/avatar.png",
-      }),
-    );
+    act(() => {
+      store.dispatch(
+        setUser({
+          firstName: "Nico",
+          pictureUrl: "https://example.com/avatar.png",
+        }),
+      );
+    });
 
     render(
       <Provider store={store}>
