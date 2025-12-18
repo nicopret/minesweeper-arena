@@ -5,6 +5,9 @@ export type AuthUser = {
   fullName?: string;
   email?: string;
   pictureUrl?: string;
+  userId?: string;
+  createdAt?: string | null;
+  lastSeenAt?: string | null;
 };
 
 export type AuthState = {

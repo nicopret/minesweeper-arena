@@ -14,6 +14,7 @@ const {
   ApiGatewayV2Client,
   GetApisCommand,
   CreateApiCommand,
+  UpdateApiCommand,
   GetIntegrationsCommand,
   CreateIntegrationCommand,
   UpdateIntegrationCommand,
@@ -22,7 +23,6 @@ const {
   UpdateRouteCommand,
   GetStagesCommand,
   CreateStageCommand,
-  CreateDeploymentCommand,
   UpdateStageCommand,
 } = require("@aws-sdk/client-apigatewayv2");
 const {
@@ -65,11 +65,42 @@ async function getAccountId() {
 async function ensureApi() {
   const res = await apiClient.send(new GetApisCommand({}));
   const existing = res.Items?.find((a) => a.Name === apiName);
-  if (existing) return existing;
+  if (existing) {
+    await apiClient.send(
+      new UpdateApiCommand({
+        ApiId: existing.ApiId,
+        CorsConfiguration: {
+          AllowOrigins: ["*"],
+          AllowHeaders: [
+            "content-type",
+            "authorization",
+            "x-amz-date",
+            "x-api-key",
+            "x-requested-with",
+          ],
+          AllowMethods: ["POST", "OPTIONS"],
+          MaxAge: 86400,
+        },
+      }),
+    );
+    return existing;
+  }
   const created = await apiClient.send(
     new CreateApiCommand({
       Name: apiName,
       ProtocolType: "HTTP",
+      CorsConfiguration: {
+        AllowOrigins: ["*"],
+        AllowHeaders: [
+          "content-type",
+          "authorization",
+          "x-amz-date",
+          "x-api-key",
+          "x-requested-with",
+        ],
+        AllowMethods: ["POST", "OPTIONS"],
+        MaxAge: 86400,
+      },
     }),
   );
   return created;
@@ -137,7 +168,7 @@ async function ensureRoute(apiId, integrationId) {
   return created.RouteId;
 }
 
-async function ensureStage(apiId, deploymentId) {
+async function ensureStage(apiId) {
   const res = await apiClient.send(
     new GetStagesCommand({
       ApiId: apiId,
@@ -145,14 +176,15 @@ async function ensureStage(apiId, deploymentId) {
   );
   const existing = res.Items?.find((s) => s.StageName === stageName);
   if (existing) {
-    await apiClient.send(
-      new UpdateStageCommand({
-        ApiId: apiId,
-        StageName: stageName,
-        DeploymentId: deploymentId,
-        AutoDeploy: true,
-      }),
-    );
+    if (!existing.AutoDeploy) {
+      await apiClient.send(
+        new UpdateStageCommand({
+          ApiId: apiId,
+          StageName: stageName,
+          AutoDeploy: true,
+        }),
+      );
+    }
     return;
   }
 
@@ -160,7 +192,6 @@ async function ensureStage(apiId, deploymentId) {
     new CreateStageCommand({
       ApiId: apiId,
       StageName: stageName,
-      DeploymentId: deploymentId,
       AutoDeploy: true,
     }),
   );
@@ -211,14 +242,7 @@ async function deployApi() {
   await addLambdaPermission(api.ApiId, accountId, lambdaArn);
   console.log("Lambda invoke permission ensured for API Gateway.");
 
-  const deployment = await apiClient.send(
-    new CreateDeploymentCommand({
-      ApiId: api.ApiId,
-      Description: `Deployment for ${stageName}`,
-    }),
-  );
-
-  await ensureStage(api.ApiId, deployment.DeploymentId);
+  await ensureStage(api.ApiId);
   console.log(`Stage "${stageName}" updated.`);
 
   const baseUrl = `https://${api.ApiId}.execute-api.${region}.amazonaws.com/${stageName}`;

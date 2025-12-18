@@ -66,6 +66,7 @@ Files live in `scoreboard/`. Required env vars can be set in `scoreboard/.env`:
 - `USER_IDENTITY_TABLE` (default `UserIdentity`)
 - `API_NAME` (default `arena-scoreboard`)
 - `API_STAGE` (default `prod`)
+- Frontend env to call the API from the browser: set `NEXT_PUBLIC_SCOREBOARD_API_BASE_URL` (e.g., `https://<apiId>.execute-api.<region>.amazonaws.com/<stage>`)
 
 ### 1) Provision IAM role (once)
 

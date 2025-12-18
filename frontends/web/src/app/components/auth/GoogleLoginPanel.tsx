@@ -16,6 +16,7 @@ type GoogleIdTokenPayload = {
   name?: string;
   email?: string;
   picture?: string;
+  sub?: string;
 };
 
 const GOOGLE_SCRIPT_SRC = "https://accounts.google.com/gsi/client";
@@ -98,6 +99,7 @@ const ensureNativeGoogleAuthInitialized = async (
 
 export default function GoogleLoginPanel() {
   const clientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
+  const scoreboardApiBase = process.env.NEXT_PUBLIC_SCOREBOARD_API_BASE_URL;
   const dispatch = useAppDispatch();
   const user = useAppSelector((state) => state.auth.user);
   const isNative = Capacitor.isNativePlatform?.() ?? false;
@@ -105,9 +107,46 @@ export default function GoogleLoginPanel() {
   const buttonRef = useRef<HTMLDivElement | null>(null);
   const initializedRef = useRef(false);
   const [error, setError] = useState<string | null>(null);
+  const [identityLoading, setIdentityLoading] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement | null>(null);
   const avatarButtonRef = useRef<HTMLButtonElement | null>(null);
+
+  const callScoreboardIdentity = async (
+    provider: string,
+    providerUserId: string | undefined,
+  ): Promise<{
+    userId?: string;
+    createdAt?: string | null;
+    lastSeenAt?: string | null;
+  } | null> => {
+    if (!scoreboardApiBase || !providerUserId) return null;
+    const url = `${scoreboardApiBase.replace(/\/$/, "")}/user`;
+    try {
+      setIdentityLoading(true);
+      const res = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ provider, providerUserId }),
+      });
+      if (!res.ok) return null;
+      const data = (await res.json()) as {
+        userId?: string;
+        createdAt?: string;
+        lastSeenAt?: string;
+      };
+      return {
+        userId: data.userId,
+        createdAt: data.createdAt ?? null,
+        lastSeenAt: data.lastSeenAt ?? null,
+      };
+    } catch (err) {
+      console.warn("Scoreboard identity lookup failed:", err);
+      return null;
+    } finally {
+      setIdentityLoading(false);
+    }
+  };
 
   useEffect(() => {
     if (!menuOpen) return;
@@ -158,14 +197,23 @@ export default function GoogleLoginPanel() {
                 const payload = decodeJwtPayload<GoogleIdTokenPayload>(
                   response.credential,
                 );
-                dispatch(
-                  setUser({
-                    firstName: getFirstName(payload),
-                    fullName: payload.name,
-                    email: payload.email,
-                    pictureUrl: payload.picture,
-                  }),
-                );
+                void (async () => {
+                  const identity = await callScoreboardIdentity(
+                    "google",
+                    payload.sub,
+                  );
+                  dispatch(
+                    setUser({
+                      firstName: getFirstName(payload),
+                      fullName: payload.name,
+                      email: payload.email,
+                      pictureUrl: payload.picture,
+                      userId: identity?.userId,
+                      createdAt: identity?.createdAt,
+                      lastSeenAt: identity?.lastSeenAt,
+                    }),
+                  );
+                })();
               } catch {
                 setError("Could not read Google profile data.");
               }
@@ -249,6 +297,12 @@ export default function GoogleLoginPanel() {
             </span>
           )}
         </button>
+
+        {user.userId ? (
+          <div className="small text-muted text-end mt-1">
+            User ID: {user.userId}
+          </div>
+        ) : null}
 
         {menuOpen ? (
           <div
@@ -344,12 +398,38 @@ export default function GoogleLoginPanel() {
                       ? result.picture
                       : undefined;
 
+                const idToken =
+                  typeof result.idToken === "string"
+                    ? result.idToken
+                    : typeof result.id_token === "string"
+                      ? result.id_token
+                      : undefined;
+
+                let providerUserId: string | undefined;
+                if (idToken) {
+                  try {
+                    const nativePayload =
+                      decodeJwtPayload<GoogleIdTokenPayload>(idToken);
+                    providerUserId = nativePayload.sub;
+                  } catch {
+                    providerUserId = undefined;
+                  }
+                }
+
+                const identity = await callScoreboardIdentity(
+                  "google",
+                  providerUserId,
+                );
+
                 dispatch(
                   setUser({
                     firstName: givenName ?? fullName?.split(" ")[0] ?? "Player",
                     fullName,
                     email,
                     pictureUrl,
+                    userId: identity?.userId,
+                    createdAt: identity?.createdAt,
+                    lastSeenAt: identity?.lastSeenAt,
                   }),
                 );
               } catch (e) {
@@ -372,6 +452,9 @@ export default function GoogleLoginPanel() {
       <div ref={buttonRef} />
       {error && !isNative ? (
         <div className="small text-danger">{error}</div>
+      ) : null}
+      {identityLoading ? (
+        <div className="small text-muted">Syncing scoreboard identity…</div>
       ) : null}
     </div>
   );
