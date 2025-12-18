@@ -19,6 +19,15 @@ type GoogleIdTokenPayload = {
   sub?: string;
 };
 
+type ScoreboardItem = {
+  highScore?: number | string;
+  updatedAt?: string | number | null;
+  updatedAtMs?: string | number | null;
+  attempts?: number;
+  bestTimeMs?: number;
+  scores?: number[];
+};
+
 const GOOGLE_SCRIPT_SRC = "https://accounts.google.com/gsi/client";
 const GOOGLE_SCRIPT_ID = "google-identity-services";
 
@@ -157,19 +166,13 @@ export default function GoogleLoginPanel() {
     const fetchHighscores = async () => {
       const base = scoreboardApiBase.replace(/\/$/, "");
       const levels = ["easy-9x9", "medium-16x16", "hard-16x30"];
-      type ScoreboardItem = {
-        highScore?: number | string;
-        updatedAt?: string | number | null;
-        updatedAtMs?: string | number | null;
-        attempts?: number;
-        bestTimeMs?: number;
-      };
       const results: {
         levelId: string;
         highScore?: number;
         updatedAt?: string | number | null;
         attempts?: number;
         bestTimeMs?: number;
+        scores?: number[];
       }[] = [];
       try {
         setHighscoresLoading(true);

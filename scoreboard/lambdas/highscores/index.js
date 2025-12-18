@@ -13,6 +13,17 @@ const client = new DynamoDBClient({
   endpoint: process.env.DYNAMODB_ENDPOINT,
 });
 
+/**
+ * @typedef {object} NormalizedEvent
+ * @property {Record<string, string>=} pathParameters
+ * @property {Record<string, string>=} queryStringParameters
+ * @property {unknown=} body
+ * @property {string=} rawPath
+ * @property {{ http?: { path?: string } }=} requestContext
+ * @property {string=} userId
+ * @property {string=} levelId
+ */
+
 const parseNumber = (val) => {
   if (typeof val === "number") return val;
   if (typeof val === "string") return Number(val);
@@ -45,11 +56,67 @@ const safeJson = (value) => {
   }
 };
 
+/**
+ * @param {unknown} body
+ * @returns {Record<string, unknown>}
+ */
+const parseBody = (body) => {
+  if (typeof body === "string") {
+    try {
+      return JSON.parse(body || "{}");
+    } catch {
+      return {};
+    }
+  }
+  if (body && typeof body === "object") return body;
+  return {};
+};
+
+/**
+ * @param {unknown} event
+ * @returns {NormalizedEvent}
+ */
+const normalizeEvent = (event) => {
+  if (typeof event === "string") {
+    try {
+      return JSON.parse(event);
+    } catch {
+      return {};
+    }
+  }
+  if (Buffer.isBuffer(event)) {
+    try {
+      return JSON.parse(event.toString("utf-8"));
+    } catch {
+      return {};
+    }
+  }
+  return event || {};
+};
+
 exports.handler = async (event) => {
   try {
-    const { userid, level } = event.pathParameters;
-    const userId = userid?.trim();
-    const levelId = level?.trim();
+    /** @type {NormalizedEvent} */
+    const normalized = normalizeEvent(event);
+    const params = normalized.pathParameters || {};
+    const query = normalized.queryStringParameters || {};
+    const body = parseBody(normalized.body);
+
+    const userId =
+      params.userId ||
+      params.userid ||
+      query.userId ||
+      query.userid ||
+      body.userId ||
+      normalized.userId;
+    const levelId =
+      params.level ||
+      params.levelId ||
+      query.level ||
+      query.levelId ||
+      body.levelId ||
+      body.difficulty ||
+      normalized.levelId;
 
     if (!userId) {
       return {

@@ -17,6 +17,7 @@ import DifficultyOptionContainer from "./containers/DifficultyOptionContainer";
 import BoardContainer from "./containers/BoardContainer";
 import GoogleLoginPanel from "./components/auth/GoogleLoginPanel";
 import HighscoresPanel from "./components/highscores/HighscoresPanel";
+import { setHighscores } from "./store/authSlice";
 import styles from "./page.module.css";
 
 type TestWindow = typeof window & {
@@ -32,18 +33,26 @@ export default function Minesweeper() {
     revealed,
     flagged,
     gameOver,
+    gameWon,
     isRunning,
+    score,
+    difficulty,
     selectedRow,
     selectedCol,
     resetId,
   } = gameState;
 
   const isTestEnv = process.env.NODE_ENV === "test";
+  const scoreboardApiBase = process.env.NEXT_PUBLIC_SCOREBOARD_API_BASE_URL;
   const [cellSize, setCellSize] = useState(30);
   const gameCardRef = useRef<HTMLDivElement | null>(null);
   const [hasMounted, setHasMounted] = useState(false);
   const autoClickRanFor = useRef(0);
   const [isNativeMobile, setIsNativeMobile] = useState(false);
+  const lastScoreSyncResetId = useRef<number | null>(null);
+
+  const user = useAppSelector((state) => state.auth.user);
+  const highscores = useAppSelector((state) => state.auth.highscores);
 
   // Track client mount to keep SSR/CSR consistent
   useEffect(() => {
@@ -137,6 +146,87 @@ export default function Minesweeper() {
     },
     [dispatch],
   );
+
+  // Push new high scores to the API when a game is won.
+  useEffect(() => {
+    if (!gameOver || !gameWon) return;
+    if (score === null || score === undefined) return;
+    if (!user?.userId) return;
+    if (!scoreboardApiBase) return;
+    if (lastScoreSyncResetId.current === resetId) return;
+
+    const levelIdMap = {
+      easy: "easy-9x9",
+      medium: "medium-16x16",
+      hard: "hard-16x30",
+    } as const;
+    const levelId = levelIdMap[difficulty];
+
+    const existingEntry = highscores.find((h) => h.levelId === levelId);
+    const existingScores = Array.isArray(existingEntry?.scores)
+      ? [...existingEntry.scores]
+      : typeof existingEntry?.highScore === "number"
+        ? [existingEntry.highScore]
+        : [];
+
+    const nextScores = [...existingScores, score]
+      .filter((n): n is number => typeof n === "number" && Number.isFinite(n))
+      .sort((a, b) => b - a)
+      .slice(0, 15);
+
+    const changed =
+      nextScores.length !== existingScores.length ||
+      nextScores.some((v, i) => v !== existingScores[i]);
+
+    if (!changed) {
+      lastScoreSyncResetId.current = resetId;
+      return;
+    }
+
+    lastScoreSyncResetId.current = resetId;
+
+    const base = scoreboardApiBase.replace(/\/$/, "");
+    const userId = user.userId;
+
+    void (async () => {
+      try {
+        await fetch(
+          `${base}/${encodeURIComponent(userId)}/minesweeper/${encodeURIComponent(levelId)}`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ scores: nextScores }),
+          },
+        );
+      } catch (err) {
+        console.warn("Failed to update highscores", err);
+      } finally {
+        const updatedEntry = {
+          levelId,
+          highScore: nextScores[0],
+          scores: nextScores,
+          attempts: nextScores.length,
+          updatedAt: Date.now(),
+          bestTimeMs: existingEntry?.bestTimeMs,
+        };
+        const merged = [
+          ...highscores.filter((h) => h.levelId !== levelId),
+          updatedEntry,
+        ].sort((a, b) => (b.highScore ?? 0) - (a.highScore ?? 0));
+        dispatch(setHighscores(merged));
+      }
+    })();
+  }, [
+    dispatch,
+    gameOver,
+    gameWon,
+    score,
+    user?.userId,
+    scoreboardApiBase,
+    resetId,
+    highscores,
+    difficulty,
+  ]);
 
   // keyboard navigation and actions
   useEffect(() => {

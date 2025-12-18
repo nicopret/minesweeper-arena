@@ -12,15 +12,42 @@ const client = new DynamoDBClient({
   endpoint: process.env.DYNAMODB_ENDPOINT,
 });
 
-const parseBody = (event) => {
-  if (typeof event?.body === "string") {
+/**
+ * @typedef {object} NormalizedEvent
+ * @property {Record<string, string>=} pathParameters
+ * @property {Record<string, string>=} queryStringParameters
+ * @property {unknown=} body
+ * @property {string=} rawPath
+ * @property {{ http?: { path?: string } }=} requestContext
+ * @property {string=} userId
+ * @property {string=} levelId
+ * @property {unknown=} scores
+ */
+
+/**
+ * @param {unknown} evt
+ * @returns {Record<string, unknown>}
+ */
+const parseBody = (evt) => {
+  if (typeof evt === "string") {
     try {
-      return JSON.parse(event.body || "{}");
+      return JSON.parse(evt || "{}");
     } catch {
       return {};
     }
   }
-  if (event?.body && typeof event.body === "object") return event.body;
+  if (evt && typeof evt === "object" && "body" in evt) {
+    const e = /** @type {{ body?: unknown }} */ (evt);
+    if (typeof e.body === "string") {
+      try {
+        return JSON.parse(e.body || "{}");
+      } catch {
+        return {};
+      }
+    }
+    if (e.body && typeof e.body === "object")
+      return /** @type {Record<string, unknown>} */ (e.body);
+  }
   return {};
 };
 
@@ -31,6 +58,10 @@ const sanitizeScores = (scores) => {
     .filter((v) => typeof v === "number" && Number.isFinite(v));
 };
 
+/**
+ * @param {unknown} event
+ * @returns {NormalizedEvent}
+ */
 const normalizeEvent = (event) => {
   if (typeof event === "string") {
     try {
@@ -66,6 +97,7 @@ const derivePathParamsFromRaw = (event) => {
 
 exports.handler = async (event) => {
   try {
+    /** @type {NormalizedEvent} */
     const normalizedEvent = normalizeEvent(event);
     const body = parseBody(normalizedEvent);
     const rawPathParams = derivePathParamsFromRaw(normalizedEvent);

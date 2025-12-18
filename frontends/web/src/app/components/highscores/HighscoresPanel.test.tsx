@@ -29,8 +29,8 @@ describe("HighscoresPanel", () => {
       );
       store.dispatch(
         setHighscores([
-          { levelId: "medium-16x16", highScore: 400 },
-          { levelId: "easy-9x9", highScore: 900 },
+          { levelId: "medium-16x16", highScore: 400, scores: [200, 150, 400] },
+          { levelId: "easy-9x9", highScore: 900, scores: [500, 900, 800] },
         ]),
       );
     });
@@ -40,8 +40,12 @@ describe("HighscoresPanel", () => {
     expect(screen.getByText(/Highscores/i)).toBeInTheDocument();
     expect(screen.getByText(/Playing now for 10 days/i)).toBeInTheDocument();
     const items = screen.getAllByRole("listitem");
-    expect(items[0]).toHaveTextContent(/easy/i);
+    expect(items[0]).toHaveTextContent("#1");
     expect(items[0]).toHaveTextContent("900");
+    expect(items[1]).toHaveTextContent("#2");
+    expect(items[1]).toHaveTextContent("800");
+    expect(items[2]).toHaveTextContent("#3");
+    expect(items[2]).toHaveTextContent("500");
   });
 
   it("shows member since subtitle and empty state when no scores", () => {

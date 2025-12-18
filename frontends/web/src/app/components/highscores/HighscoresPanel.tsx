@@ -1,6 +1,5 @@
 import React from "react";
 import { useAppSelector } from "../../store/hooks";
-import type { HighscoreEntry } from "../../store/authSlice";
 import GoogleLoginPanel from "../auth/GoogleLoginPanel";
 
 const formatDate = (value: string | number | null | undefined): string => {
@@ -27,13 +26,6 @@ const daysSince = (
   return Math.floor(diffMs / (1000 * 60 * 60 * 24));
 };
 
-const levelLabel = (levelId: string): string => {
-  if (levelId === "easy-9x9") return "Easy (9x9)";
-  if (levelId === "medium-16x16") return "Medium (16x16)";
-  if (levelId === "hard-16x30") return "Hard (16x30)";
-  return levelId;
-};
-
 const HighscoresPanel = (): React.JSX.Element | null => {
   const user = useAppSelector((state) => state.auth.user);
   const highscores = useAppSelector((state) => state.auth.highscores);
@@ -52,9 +44,19 @@ const HighscoresPanel = (): React.JSX.Element | null => {
     );
   }
 
-  const sorted: HighscoreEntry[] = [...highscores].sort(
-    (a, b) => (b.highScore ?? 0) - (a.highScore ?? 0),
-  );
+  const allScores: number[] = [];
+  for (const entry of highscores) {
+    if (Array.isArray(entry.scores) && entry.scores.length > 0) {
+      allScores.push(
+        ...entry.scores.filter(
+          (n): n is number => typeof n === "number" && Number.isFinite(n),
+        ),
+      );
+    } else if (typeof entry.highScore === "number") {
+      allScores.push(entry.highScore);
+    }
+  }
+  const sortedScores = [...allScores].sort((a, b) => b - a);
 
   const accountDays = daysSince(user.createdAt);
   let subtitle: string | null = null;
@@ -72,21 +74,17 @@ const HighscoresPanel = (): React.JSX.Element | null => {
       {subtitle ? (
         <div className="text-muted small mb-2">{subtitle}</div>
       ) : null}
-      {sorted.length === 0 ? (
+      {sortedScores.length === 0 ? (
         <div className="text-muted small">No highscores yet</div>
       ) : (
         <ul className="list-group">
-          {sorted.map((entry) => (
+          {sortedScores.map((score, idx) => (
             <li
-              key={entry.levelId}
+              key={`score-${idx}-${score}`}
               className="list-group-item d-flex justify-content-between align-items-center"
             >
-              <span>{levelLabel(entry.levelId)}</span>
-              <span className="fw-bold">
-                {typeof entry.highScore === "number"
-                  ? entry.highScore
-                  : "\u2014"}
-              </span>
+              <span className="text-muted">#{idx + 1}</span>
+              <span className="fw-bold">{score}</span>
             </li>
           ))}
         </ul>
