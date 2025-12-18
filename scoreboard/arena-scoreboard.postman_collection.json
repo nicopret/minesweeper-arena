@@ -1,0 +1,54 @@
+{
+  "info": {
+    "_postman_id": "d9c7c41b-0000-4000-a000-000000000001",
+    "name": "Arena Scoreboard",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "arena-scoreboard"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "https://{{apiId}}.execute-api.{{region}}.amazonaws.com/{{stage}}",
+      "type": "string"
+    },
+    {
+      "key": "apiId",
+      "value": "<your-api-id>",
+      "type": "string"
+    },
+    {
+      "key": "region",
+      "value": "us-east-1",
+      "type": "string"
+    },
+    {
+      "key": "stage",
+      "value": "prod",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "POST /user (create or touch user identity)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"provider\": \"google\",\n  \"providerUserId\": \"test-user-123\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/user",
+          "host": ["{{baseUrl}}"],
+          "path": ["user"]
+        }
+      },
+      "response": []
+    }
+  ]
+}

@@ -1,0 +1,21 @@
+{
+  "name": "user-identity-lambda",
+  "version": "0.1.0",
+  "private": true,
+  "type": "commonjs",
+  "main": "index.js",
+  "dependencies": {
+    "@aws-sdk/client-dynamodb": "^3.744.0",
+    "@smithy/config-resolver": "^4.4.4",
+    "@smithy/node-config-provider": "^4.3.6",
+    "@smithy/core": "^3.19.0",
+    "@smithy/smithy-client": "^3.4.2",
+    "@smithy/types": "^4.10.0",
+    "@smithy/util-config-provider": "^4.2.0",
+    "@smithy/util-endpoints": "^3.2.6",
+    "@smithy/util-middleware": "^4.2.6",
+    "obliterator": "^2.0.4",
+    "tslib": "^2.7.0",
+    "uuid": "^11.0.5"
+  }
+}

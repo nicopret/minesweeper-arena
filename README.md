@@ -56,6 +56,70 @@ The pre-commit hook runs eslint (with fix) and Prettier on staged files via lint
 - `npm run test:e2e` — Playwright E2E tests (first run may need `npx playwright install --with-deps`)
 - `npm run test:full` — run Vitest then Playwright
 
+## Scoreboard backend (Lambda + API Gateway + DynamoDB)
+
+Files live in `scoreboard/`. Required env vars can be set in `scoreboard/.env`:
+
+- `AWS_REGION` (e.g., `us-east-1`)
+- `LAMBDA_ROLE_ARN` (IAM role ARN for the Lambda)
+- `LAMBDA_FUNCTION_NAME` (default `user-identity`)
+- `USER_IDENTITY_TABLE` (default `UserIdentity`)
+- `API_NAME` (default `arena-scoreboard`)
+- `API_STAGE` (default `prod`)
+
+### 1) Provision IAM role (once)
+
+```bash
+cd scoreboard
+./provision-lambda-role.sh
+# Note the output ARN and set LAMBDA_ROLE_ARN in scoreboard/.env
+```
+
+### 2) Create DynamoDB table (UserIdentity)
+
+```bash
+npm run dynamodb:create
+```
+
+### 3) Deploy the Lambda
+
+```bash
+npm run lambda:deploy
+```
+
+The deployment script bundles the function from `scoreboard/lambdas/user-identity/` (including dependencies) and uploads it.
+
+### 4) Deploy the API Gateway
+
+```bash
+npm run api:deploy
+```
+
+This creates/updates an HTTP API named `arena-scoreboard` with `POST /user` wired to the Lambda. The script prints the invoke URL, e.g.:
+
+```
+https://<apiId>.execute-api.<region>.amazonaws.com/prod/user
+```
+
+### 5) Test the Lambda directly
+
+```bash
+npm run lambda:test -- --provider google --providerUserId 123
+```
+
+Shows a pretty-printed response with `userId`, `createdAt`, and `lastSeenAt`.
+
+### 6) Test the API with Postman
+
+Import `scoreboard/arena-scoreboard.postman_collection.json`, set `apiId`, `region`, and `stage` variables, then run the `POST /user` request with body:
+
+```json
+{
+  "provider": "google",
+  "providerUserId": "test-user-123"
+}
+```
+
 ## Google Login (frontend)
 
 The web UI supports Google login. On the web it uses Google Identity Services (GIS). On the Capacitor Android app it uses a native Google Auth plugin.
