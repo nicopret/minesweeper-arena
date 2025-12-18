@@ -64,6 +64,7 @@ Files live in `scoreboard/`. Required env vars can be set in `scoreboard/.env`:
 - `LAMBDA_ROLE_ARN` (IAM role ARN for the Lambda)
 - `LAMBDA_FUNCTION_NAME` (default `user-identity`)
 - `USER_IDENTITY_TABLE` (default `UserIdentity`)
+- `HIGHSCORES_TABLE` (default `MinesweeperHighScores`)
 - `API_NAME` (default `arena-scoreboard`)
 - `API_STAGE` (default `prod`)
 - Frontend env to call the API from the browser: set `NEXT_PUBLIC_SCOREBOARD_API_BASE_URL` (e.g., `https://<apiId>.execute-api.<region>.amazonaws.com/<stage>`)
@@ -76,7 +77,7 @@ cd scoreboard
 # Note the output ARN and set LAMBDA_ROLE_ARN in scoreboard/.env
 ```
 
-### 2) Create DynamoDB table (UserIdentity)
+### 2) Create DynamoDB tables (UserIdentity + MinesweeperHighScores)
 
 ```bash
 npm run dynamodb:create

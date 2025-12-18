@@ -29,7 +29,7 @@
     "test:e2e": "playwright test",
     "test:e2e:headed": "playwright test --headed",
     "test:full": "npm run test && npm run test:e2e",
-    "dynamodb:create": "node scoreboard/dynamodb-create-user-identity.js",
+    "dynamodb:create": "node scoreboard/dynamodb-create.js",
     "lambda:deploy": "node scoreboard/lambda-deploy.js",
     "lambda:test": "node scoreboard/lambda-test-user-identity.js",
     "api:deploy": "node scoreboard/api-deploy.js"
