@@ -124,7 +124,7 @@ export default function Minesweeper() {
   const handleCellClick = useCallback(
     (row: number, col: number): void => {
       dispatch(setSelection({ row, col }));
-      dispatch(revealCellAction({ row, col }));
+      dispatch(revealCellAction({ row, col, userInitiated: true }));
     },
     [dispatch],
   );
@@ -132,7 +132,7 @@ export default function Minesweeper() {
   // Toggle flag without an event (for keyboard)
   const toggleFlag = useCallback(
     (row: number, col: number): void => {
-      dispatch(toggleFlagAction({ row, col }));
+      dispatch(toggleFlagAction({ row, col, userInitiated: true }));
     },
     [dispatch],
   );
@@ -262,7 +262,13 @@ export default function Minesweeper() {
         }
       }
       dispatch(setSelection({ row: clickRow, col: clickCol }));
-      dispatch(revealCellAction({ row: clickRow, col: clickCol }));
+      dispatch(
+        revealCellAction({
+          row: clickRow,
+          col: clickCol,
+          userInitiated: false,
+        }),
+      );
     }, 0);
     return () => clearTimeout(timeout);
   }, [
