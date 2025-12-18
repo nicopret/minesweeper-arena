@@ -66,6 +66,16 @@ const LAMBDAS = [
       DYNAMODB_ENDPOINT: process.env.DYNAMODB_ENDPOINT || "",
     },
   },
+  {
+    name: process.env.UPDATE_SCORES_FUNCTION_NAME || "update-scores",
+    description: "Replace a user's scores for a difficulty",
+    dir: path.join(projectRoot, "scoreboard", "lambdas", "update-scores"),
+    env: {
+      HIGHSCORES_TABLE: process.env.HIGHSCORES_TABLE || "MinesweeperHighScores",
+      AWS_NODEJS_CONNECTION_REUSE_ENABLED: "1",
+      DYNAMODB_ENDPOINT: process.env.DYNAMODB_ENDPOINT || "",
+    },
+  },
 ];
 
 async function pathExists(p) {

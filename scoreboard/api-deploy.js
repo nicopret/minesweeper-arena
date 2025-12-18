@@ -1,12 +1,14 @@
 // Deploy or update an API Gateway HTTP API named "arena-scoreboard" with:
 //   - POST /user -> user-identity Lambda
 //   - GET /{userid}/minesweeper/{level} -> highscores Lambda
+//   - POST /{userid}/minesweeper/{level} -> update-scores Lambda
 //
 // Usage: npm run api:deploy
 // Env (loaded from scoreboard/.env if present):
 //   AWS_REGION (default: us-east-1)
 //   LAMBDA_FUNCTION_NAME (default: user-identity)
 //   HIGHSCORES_FUNCTION_NAME (default: highscores)
+//   UPDATE_SCORES_FUNCTION_NAME (default: update-scores)
 //   API_NAME (default: arena-scoreboard)
 //   API_STAGE (default: prod)
 
@@ -56,6 +58,8 @@ const stageName = process.env.API_STAGE || "prod";
 const functionName = process.env.LAMBDA_FUNCTION_NAME || "user-identity";
 const highscoresFunctionName =
   process.env.HIGHSCORES_FUNCTION_NAME || "highscores";
+const updateScoresFunctionName =
+  process.env.UPDATE_SCORES_FUNCTION_NAME || "update-scores";
 
 const apiClient = new ApiGatewayV2Client({ region });
 const lambdaClient = new LambdaClient({ region });
@@ -228,16 +232,20 @@ async function deployApi() {
   const accountId = await getAccountId();
   const identityLambdaArn = await getLambdaArn(functionName);
   const highscoresLambdaArn = await getLambdaArn(highscoresFunctionName);
+  const updateScoresLambdaArn = await getLambdaArn(updateScoresFunctionName);
   if (!identityLambdaArn)
     throw new Error("Could not resolve user-identity Lambda ARN");
   if (!highscoresLambdaArn)
     throw new Error("Could not resolve highscores Lambda ARN");
+  if (!updateScoresLambdaArn)
+    throw new Error("Could not resolve update-scores Lambda ARN");
 
   const api = await ensureApi();
   console.log(`API ID: ${api.ApiId}`);
 
   const identityIntegrationUri = `arn:aws:apigateway:${region}:lambda:path/2015-03-31/functions/${identityLambdaArn}/invocations`;
   const highscoresIntegrationUri = `arn:aws:apigateway:${region}:lambda:path/2015-03-31/functions/${highscoresLambdaArn}/invocations`;
+  const updateScoresIntegrationUri = `arn:aws:apigateway:${region}:lambda:path/2015-03-31/functions/${updateScoresLambdaArn}/invocations`;
 
   const identityIntegrationId = await ensureIntegration(
     api.ApiId,
@@ -247,8 +255,12 @@ async function deployApi() {
     api.ApiId,
     highscoresIntegrationUri,
   );
+  const updateScoresIntegrationId = await ensureIntegration(
+    api.ApiId,
+    updateScoresIntegrationUri,
+  );
   console.log(
-    `Integrations ensured: identity=${identityIntegrationId}, highscores=${highscoresIntegrationId}`,
+    `Integrations ensured: identity=${identityIntegrationId}, highscores=${highscoresIntegrationId}, updateScores=${updateScoresIntegrationId}`,
   );
 
   await ensureRoute(api.ApiId, "POST /user", identityIntegrationId);
@@ -260,6 +272,13 @@ async function deployApi() {
     highscoresIntegrationId,
   );
   console.log("Route GET /{userid}/minesweeper/{level} ensured.");
+
+  await ensureRoute(
+    api.ApiId,
+    "POST /{userid}/minesweeper/{level}",
+    updateScoresIntegrationId,
+  );
+  console.log("Route POST /{userid}/minesweeper/{level} ensured.");
 
   await addLambdaPermission(
     api.ApiId,
@@ -275,13 +294,23 @@ async function deployApi() {
     `apigw-${api.ApiId}-highscores`,
     `arn:aws:execute-api:${region}:${accountId}:${api.ApiId}/*/GET/*/minesweeper/*`,
   );
+  await addLambdaPermission(
+    api.ApiId,
+    accountId,
+    updateScoresLambdaArn,
+    `apigw-${api.ApiId}-updatescores`,
+    `arn:aws:execute-api:${region}:${accountId}:${api.ApiId}/*/POST/*/minesweeper/*`,
+  );
   console.log("Lambda invoke permissions ensured for API Gateway.");
 
   await ensureStage(api.ApiId);
   console.log(`Stage "${stageName}" updated.`);
 
   const baseUrl = `https://${api.ApiId}.execute-api.${region}.amazonaws.com/${stageName}`;
-  console.log(`\nAPI deployed. Invoke with: POST ${baseUrl}/user`);
+  console.log(`\nAPI deployed.`);
+  console.log(`POST ${baseUrl}/user`);
+  console.log(`GET  ${baseUrl}/{userid}/minesweeper/{level}`);
+  console.log(`POST ${baseUrl}/{userid}/minesweeper/{level}`);
 }
 
 deployApi().catch((err) => {

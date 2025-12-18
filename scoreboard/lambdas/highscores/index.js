@@ -19,9 +19,17 @@ const parseNumber = (val) => {
   return undefined;
 };
 
+const parseScores = (attr) => {
+  if (!attr || !Array.isArray(attr.L)) return [];
+  return attr.L.map((v) => parseNumber(v.N ?? v.S)).filter((n) =>
+    Number.isFinite(n),
+  );
+};
+
 const mapItem = (item) => ({
   userId: item.userId?.S,
   levelId: item.levelId?.S,
+  scores: parseScores(item.scores),
   highScore: parseNumber(item.highScore?.N),
   updatedAt: parseNumber(item.updatedAt?.N) ?? item.updatedAt?.S,
   attempts: parseNumber(item.attempts?.N),
@@ -39,18 +47,9 @@ const safeJson = (value) => {
 
 exports.handler = async (event) => {
   try {
-    const bodyData =
-      typeof event?.body === "string"
-        ? JSON.parse(event.body || "{}")
-        : event?.body || {};
-    const userId =
-      bodyData.userId ||
-      event?.queryStringParameters?.userId ||
-      event?.pathParameters?.userId;
-    const levelId =
-      bodyData.levelId ||
-      event?.queryStringParameters?.levelId ||
-      event?.pathParameters?.levelId;
+    const { userid, level } = event.pathParameters;
+    const userId = userid?.trim();
+    const levelId = level?.trim();
 
     if (!userId) {
       return {

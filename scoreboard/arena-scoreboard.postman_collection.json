@@ -97,6 +97,219 @@
         }
       },
       "response": []
+    },
+    {
+      "name": "POST /{userId}/minesweeper/easy-9x9 (update scores)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"scores\": [12, 61, 43]\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/{{userId}}/minesweeper/easy-9x9",
+          "host": ["{{baseUrl}}"],
+          "path": ["{{userId}}", "minesweeper", "easy-9x9"]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('status is 200', () => pm.response.to.have.status(200));",
+              "let body;",
+              "try { body = pm.response.json(); } catch (e) { body = {}; }",
+              "pm.test('update ok', () => pm.expect(body.ok || body.body?.ok || body.statusCode < 300).to.be.true);",
+              "pm.collectionVariables.set('scores_easy', JSON.stringify([12, 61, 43]));"
+            ]
+          }
+        }
+      ],
+      "response": []
+    },
+    {
+      "name": "POST /{userId}/minesweeper/medium-16x16 (update scores)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"scores\": [25, 30, 18]\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/{{userId}}/minesweeper/medium-16x16",
+          "host": ["{{baseUrl}}"],
+          "path": ["{{userId}}", "minesweeper", "medium-16x16"]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('status is 200', () => pm.response.to.have.status(200));",
+              "let body;",
+              "try { body = pm.response.json(); } catch (e) { body = {}; }",
+              "pm.test('update ok', () => pm.expect(body.ok || body.body?.ok || body.statusCode < 300).to.be.true);",
+              "pm.collectionVariables.set('scores_medium', JSON.stringify([25, 30, 18]));"
+            ]
+          }
+        }
+      ],
+      "response": []
+    },
+    {
+      "name": "POST /{userId}/minesweeper/hard-16x30 (update scores)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"scores\": [80, 42, 51]\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/{{userId}}/minesweeper/hard-16x30",
+          "host": ["{{baseUrl}}"],
+          "path": ["{{userId}}", "minesweeper", "hard-16x30"]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('status is 200', () => pm.response.to.have.status(200));",
+              "let body;",
+              "try { body = pm.response.json(); } catch (e) { body = {}; }",
+              "pm.test('update ok', () => pm.expect(body.ok || body.body?.ok || body.statusCode < 300).to.be.true);",
+              "pm.collectionVariables.set('scores_hard', JSON.stringify([80, 42, 51]));"
+            ]
+          }
+        }
+      ],
+      "response": []
+    },
+    {
+      "name": "GET /{userId}/minesweeper/easy-9x9 (verify)",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/{{userId}}/minesweeper/easy-9x9",
+          "host": ["{{baseUrl}}"],
+          "path": ["{{userId}}", "minesweeper", "easy-9x9"]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('status is 200', () => pm.response.to.have.status(200));",
+              "let body;",
+              "try { body = pm.response.json(); } catch (e) { body = {}; }",
+              "const items = body.items || body.body?.items || [];",
+              "pm.test('has item', () => pm.expect(items.length).to.be.above(0));",
+              "const item = items[0];",
+              "const expected = JSON.parse(pm.collectionVariables.get('scores_easy') || '[]');",
+              "pm.test('level matches', () => pm.expect(item.levelId).to.eql('easy-9x9'));",
+              "pm.test('scores match', () => pm.expect(item.scores).to.eql(expected));",
+              "const expectedHigh = Math.max.apply(null, expected);",
+              "pm.test('highScore matches', () => pm.expect(item.highScore).to.eql(expectedHigh));"
+            ]
+          }
+        }
+      ],
+      "response": []
+    },
+    {
+      "name": "GET /{userId}/minesweeper/medium-16x16 (verify)",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/{{userId}}/minesweeper/medium-16x16",
+          "host": ["{{baseUrl}}"],
+          "path": ["{{userId}}", "minesweeper", "medium-16x16"]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('status is 200', () => pm.response.to.have.status(200));",
+              "let body;",
+              "try { body = pm.response.json(); } catch (e) { body = {}; }",
+              "const items = body.items || body.body?.items || [];",
+              "pm.test('has item', () => pm.expect(items.length).to.be.above(0));",
+              "const item = items[0];",
+              "const expected = JSON.parse(pm.collectionVariables.get('scores_medium') || '[]');",
+              "pm.test('level matches', () => pm.expect(item.levelId).to.eql('medium-16x16'));",
+              "pm.test('scores match', () => pm.expect(item.scores).to.eql(expected));",
+              "const expectedHigh = Math.max.apply(null, expected);",
+              "pm.test('highScore matches', () => pm.expect(item.highScore).to.eql(expectedHigh));"
+            ]
+          }
+        }
+      ],
+      "response": []
+    },
+    {
+      "name": "GET /{userId}/minesweeper/hard-16x30 (verify)",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/{{userId}}/minesweeper/hard-16x30",
+          "host": ["{{baseUrl}}"],
+          "path": ["{{userId}}", "minesweeper", "hard-16x30"]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('status is 200', () => pm.response.to.have.status(200));",
+              "let body;",
+              "try { body = pm.response.json(); } catch (e) { body = {}; }",
+              "const items = body.items || body.body?.items || [];",
+              "pm.test('has item', () => pm.expect(items.length).to.be.above(0));",
+              "const item = items[0];",
+              "const expected = JSON.parse(pm.collectionVariables.get('scores_hard') || '[]');",
+              "pm.test('level matches', () => pm.expect(item.levelId).to.eql('hard-16x30'));",
+              "pm.test('scores match', () => pm.expect(item.scores).to.eql(expected));",
+              "const expectedHigh = Math.max.apply(null, expected);",
+              "pm.test('highScore matches', () => pm.expect(item.highScore).to.eql(expectedHigh));"
+            ]
+          }
+        }
+      ],
+      "response": []
     }
   ]
 }

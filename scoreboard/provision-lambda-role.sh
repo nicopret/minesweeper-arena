@@ -8,11 +8,13 @@ set -euo pipefail
 # Env (optional):
 #   ROLE_NAME=user-identity-lambda
 #   USER_IDENTITY_TABLE=UserIdentity
+#   HIGHSCORES_TABLE=MinesweeperHighScores
 #   AWS_REGION=us-east-1
 
-ROLE_NAME="${ROLE_NAME:-user-identity-lambda}"
-USER_IDENTITY_TABLE="${USER_IDENTITY_TABLE:-UserIdentity}"
-AWS_REGION="${AWS_REGION:-us-east-1}"
+ROLE_NAME="user-identity-lambda"
+USER_IDENTITY_TABLE="UserIdentity"
+HIGHSCORES_TABLE="MinesweeperHighScores"
+AWS_REGION="us-east-1"
 
 TRUST_JSON=$(cat <<'EOF'
 {
@@ -35,12 +37,16 @@ POLICY_JSON=$(cat <<EOF
     {
       "Effect": "Allow",
       "Action": [
+        "dynamodb:DescribeTable",
         "dynamodb:GetItem",
         "dynamodb:PutItem",
-        "dynamodb:UpdateItem",
-        "dynamodb:DescribeTable"
+        "dynamodb:Query",
+        "dynamodb:UpdateItem"
       ],
-      "Resource": "arn:aws:dynamodb:*:*:table/${USER_IDENTITY_TABLE}"
+      "Resource": [
+        "arn:aws:dynamodb:*:*:table/${USER_IDENTITY_TABLE}",
+        "arn:aws:dynamodb:*:*:table/${HIGHSCORES_TABLE}"
+      ]
     }
   ]
 }

@@ -186,7 +186,19 @@ export default function GoogleLoginPanel() {
             const first = items[0];
             if (first) {
               const hsRaw = first.highScore;
-              const highScore = hsRaw;
+              const scoreList = Array.isArray(
+                (first as { scores?: unknown }).scores,
+              )
+                ? ((first as { scores?: unknown }).scores as unknown[])
+                    .filter((n) => typeof n === "number" && Number.isFinite(n))
+                    .map((n) => n as number)
+                : [];
+              const highScore =
+                hsRaw !== undefined
+                  ? hsRaw
+                  : scoreList.length
+                    ? Math.max(...scoreList)
+                    : undefined;
               results.push({
                 levelId,
                 highScore:
@@ -195,6 +207,7 @@ export default function GoogleLoginPanel() {
                     : typeof highScore === "string"
                       ? Number(highScore)
                       : undefined,
+                scores: scoreList,
                 updatedAt:
                   typeof first.updatedAt === "string" ||
                   typeof first.updatedAt === "number"
@@ -206,7 +219,9 @@ export default function GoogleLoginPanel() {
                 attempts:
                   typeof first.attempts === "number"
                     ? first.attempts
-                    : undefined,
+                    : scoreList.length
+                      ? scoreList.length
+                      : undefined,
                 bestTimeMs:
                   typeof first.bestTimeMs === "number"
                     ? first.bestTimeMs

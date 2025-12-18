@@ -1,6 +1,7 @@
 import React from "react";
 import { useAppSelector } from "../../store/hooks";
 import type { HighscoreEntry } from "../../store/authSlice";
+import GoogleLoginPanel from "../auth/GoogleLoginPanel";
 
 const formatDate = (value: string | number | null | undefined): string => {
   if (!value) return "";
@@ -37,7 +38,19 @@ const HighscoresPanel = (): React.JSX.Element | null => {
   const user = useAppSelector((state) => state.auth.user);
   const highscores = useAppSelector((state) => state.auth.highscores);
 
-  if (!user?.userId) return null;
+  if (!user?.userId) {
+    return (
+      <div className="mb-3 text-center">
+        <h5 className="mb-2">Highscores</h5>
+        <p className="mb-3 text-muted small">
+          You are not signed in. Sign in to see your scoreboard and best times.
+        </p>
+        <div className="d-inline-block">
+          <GoogleLoginPanel />
+        </div>
+      </div>
+    );
+  }
 
   const sorted: HighscoreEntry[] = [...highscores].sort(
     (a, b) => (b.highScore ?? 0) - (a.highScore ?? 0),

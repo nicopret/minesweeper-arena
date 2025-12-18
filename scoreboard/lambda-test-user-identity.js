@@ -5,6 +5,7 @@
 //   AWS_REGION (default: us-east-1)
 //   LAMBDA_FUNCTION_NAME (default: user-identity)
 //   HIGHSCORES_FUNCTION_NAME (default: highscores)
+//   UPDATE_SCORES_FUNCTION_NAME (default: update-scores)
 
 const fs = require("node:fs");
 const path = require("node:path");
@@ -42,6 +43,8 @@ const providerUserId = argMap.providerUserId || "test-user-123";
 const region = process.env.AWS_REGION || "us-east-1";
 const functionName = process.env.LAMBDA_FUNCTION_NAME || "user-identity";
 const highscoresFn = process.env.HIGHSCORES_FUNCTION_NAME || "highscores";
+const updateScoresFn =
+  process.env.UPDATE_SCORES_FUNCTION_NAME || "update-scores";
 
 const lambda = new LambdaClient({ region });
 
@@ -103,7 +106,74 @@ async function main() {
   }
 
   const levels = ["easy-9x9", "medium-16x16", "hard-16x30"];
+
+  const parseItems = (hsParsed) => {
+    const direct = hsParsed?.items || hsParsed?.body?.items;
+    if (Array.isArray(direct)) return direct;
+    if (hsParsed?.body && typeof hsParsed.body === "string") {
+      try {
+        const parsed = JSON.parse(hsParsed.body || "{}");
+        if (Array.isArray(parsed.items)) return parsed.items;
+      } catch {
+        return [];
+      }
+    }
+    return [];
+  };
+
+  console.log("\n=== Step 2-4: verify highscores empty per level ===");
   for (const levelId of levels) {
+    const hsPayload = { userId, levelId };
+    console.log(`\nInvoking ${highscoresFn} with:`);
+    console.log(JSON.stringify(hsPayload, null, 2));
+    const hs = await invokeLambda(highscoresFn, hsPayload);
+    console.log("=== Highscores Response ===");
+    console.log(`StatusCode: ${hs.res.StatusCode}`);
+    console.log(`FunctionError: ${hs.res.FunctionError || "none"}`);
+    console.log("Payload:");
+    console.log(JSON.stringify(hs.parsed, null, 2));
+
+    const items = parseItems(hs.parsed);
+    if (!Array.isArray(items) || items.length !== 0) {
+      throw new Error(`Expected empty highscores for ${levelId}`);
+    }
+  }
+
+  const randomScores = () =>
+    Array.from({ length: 3 }, () => Math.floor(Math.random() * 100) + 1);
+
+  const testCases = [
+    { levelId: "easy-9x9", scores: randomScores() },
+    { levelId: "medium-16x16", scores: randomScores() },
+    { levelId: "hard-16x30", scores: randomScores() },
+  ];
+
+  console.log("\n=== Step 5-7: updating scores ===");
+  for (const { levelId, scores } of testCases) {
+    const payload = {
+      pathParameters: { userId, level: levelId },
+      body: JSON.stringify({ scores }),
+      rawPath: `/${userId}/minesweeper/${levelId}`,
+    };
+    console.log(`Invoking ${updateScoresFn} with:`);
+    console.log(JSON.stringify(payload, null, 2));
+    const res = await invokeLambda(updateScoresFn, payload);
+    console.log("Response:");
+    console.log(JSON.stringify(res.parsed, null, 2));
+    const ok =
+      res.parsed?.ok ||
+      res.parsed?.body?.ok ||
+      (typeof res.parsed?.statusCode === "number" &&
+        res.parsed.statusCode < 300);
+    if (!ok) {
+      throw new Error(
+        `Update scores failed for ${levelId}: ${JSON.stringify(res.parsed)}`,
+      );
+    }
+  }
+
+  console.log("\n=== Step 8-10: verifying highscores match updates ===");
+  for (const { levelId, scores } of testCases) {
     const hsPayload = { userId, levelId };
     console.log(`\nInvoking ${highscoresFn} with:`);
     console.log(JSON.stringify(hsPayload, null, 2));
@@ -115,7 +185,31 @@ async function main() {
     console.log(`FunctionError: ${hs.res.FunctionError || "none"}`);
     console.log("Payload:");
     console.log(JSON.stringify(hs.parsed, null, 2));
+
+    const items = parseItems(hs.parsed);
+    const expectedHigh = Math.max(...scores);
+    const item = Array.isArray(items) ? items[0] : null;
+    if (!item) {
+      throw new Error(`No highscores returned for ${levelId}`);
+    }
+    if (item.levelId !== levelId) {
+      throw new Error(
+        `Level mismatch. Expected ${levelId}, got ${item.levelId}`,
+      );
+    }
+    if (item.highScore !== expectedHigh) {
+      throw new Error(
+        `Highscore mismatch for ${levelId}. Expected ${expectedHigh}, got ${item.highScore}`,
+      );
+    }
+    if (typeof item.attempts === "number" && item.attempts !== scores.length) {
+      throw new Error(
+        `Attempts mismatch for ${levelId}. Expected ${scores.length}, got ${item.attempts}`,
+      );
+    }
   }
+
+  console.log("\nAll tests passed.");
 }
 
 main().catch((err) => {

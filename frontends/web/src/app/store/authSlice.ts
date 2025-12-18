@@ -21,6 +21,7 @@ export type HighscoreEntry = {
   updatedAt?: string | number | null;
   attempts?: number;
   bestTimeMs?: number;
+  scores?: number[];
 };
 
 const initialState: AuthState = {
