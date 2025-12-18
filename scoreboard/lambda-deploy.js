@@ -1,10 +1,11 @@
-// Deploy the user-identity lambda to AWS.
+// Deploy scoreboard lambdas (user-identity, highscores) to AWS.
 // Usage: npm run lambda:deploy
 // Env:
 //   AWS_REGION (default: us-east-1)
-//   LAMBDA_FUNCTION_NAME (default: user-identity)
-//   LAMBDA_ROLE_ARN (required when creating the function)
+//   LAMBDA_ROLE_ARN (required when creating functions)
+//   LAMBDA_FUNCTION_NAME (default: user-identity) [legacy]
 //   USER_IDENTITY_TABLE (default: UserIdentity)
+//   HIGHSCORES_TABLE (default: MinesweeperHighScores)
 //   DYNAMODB_ENDPOINT (optional, e.g. for localstack)
 
 const fs = require("node:fs");
@@ -38,19 +39,34 @@ function loadEnvFromFile() {
 loadEnvFromFile();
 
 const region = process.env.AWS_REGION || "us-east-1";
-const functionName = process.env.LAMBDA_FUNCTION_NAME || "user-identity";
 const roleArn = process.env.LAMBDA_ROLE_ARN;
 
 const lambda = new LambdaClient({ region });
 
 const projectRoot = process.cwd();
-const lambdaDir = path.join(
-  projectRoot,
-  "scoreboard",
-  "lambdas",
-  "user-identity",
-);
-const lambdaSource = path.join(lambdaDir, "index.js");
+
+const LAMBDAS = [
+  {
+    name: process.env.LAMBDA_FUNCTION_NAME || "user-identity",
+    description: "User identity lookup/creation for scoreboard",
+    dir: path.join(projectRoot, "scoreboard", "lambdas", "user-identity"),
+    env: {
+      USER_IDENTITY_TABLE: process.env.USER_IDENTITY_TABLE || "UserIdentity",
+      AWS_NODEJS_CONNECTION_REUSE_ENABLED: "1",
+      DYNAMODB_ENDPOINT: process.env.DYNAMODB_ENDPOINT || "",
+    },
+  },
+  {
+    name: process.env.HIGHSCORES_FUNCTION_NAME || "highscores",
+    description: "Fetch Minesweeper highscores",
+    dir: path.join(projectRoot, "scoreboard", "lambdas", "highscores"),
+    env: {
+      HIGHSCORES_TABLE: process.env.HIGHSCORES_TABLE || "MinesweeperHighScores",
+      AWS_NODEJS_CONNECTION_REUSE_ENABLED: "1",
+      DYNAMODB_ENDPOINT: process.env.DYNAMODB_ENDPOINT || "",
+    },
+  },
+];
 
 async function pathExists(p) {
   try {
@@ -94,7 +110,8 @@ function zipDir(dir, outZip) {
   }
 }
 
-async function buildBundle() {
+async function buildBundle(lambdaDir) {
+  const lambdaSource = path.join(lambdaDir, "index.js");
   if (!(await pathExists(lambdaSource))) {
     throw new Error(`Lambda source not found at ${lambdaSource}`);
   }
@@ -136,9 +153,7 @@ async function buildBundle() {
     await copyDep(dep);
   }
 
-  const tmpDir = await fsp.mkdtemp(
-    path.join(os.tmpdir(), "lambda-user-identity-"),
-  );
+  const tmpDir = await fsp.mkdtemp(path.join(os.tmpdir(), "lambda-bundle-"));
   const bundleDir = path.join(tmpDir, "bundle");
   await fsp.mkdir(bundleDir);
 
@@ -161,7 +176,7 @@ async function lambdaExists(name) {
   }
 }
 
-async function deploy(zipPath) {
+async function deploy(zipPath, functionName, description, envVars) {
   const code = await fsp.readFile(zipPath);
   const exists = await lambdaExists(functionName);
   if (exists) {
@@ -189,13 +204,10 @@ async function deploy(zipPath) {
       Handler: "index.handler",
       Role: roleArn,
       Code: { ZipFile: code },
-      Description: "User identity lookup/creation for scoreboard",
+      Description: description,
       Environment: {
         Variables: {
-          USER_IDENTITY_TABLE:
-            process.env.USER_IDENTITY_TABLE || "UserIdentity",
-          AWS_NODEJS_CONNECTION_REUSE_ENABLED: "1",
-          DYNAMODB_ENDPOINT: process.env.DYNAMODB_ENDPOINT || "",
+          ...envVars,
         },
       },
       Timeout: 10,
@@ -207,21 +219,29 @@ async function deploy(zipPath) {
 }
 
 async function main() {
-  const zipPath = await buildBundle();
-  await deploy(zipPath);
-
-  // Clean up node_modules in lambdaDir after deploy to keep repo tidy
-  try {
-    const nodeModulesPath = path.join(lambdaDir, "node_modules");
-    if (await pathExists(nodeModulesPath)) {
-      await fsp.rm(nodeModulesPath, { recursive: true, force: true });
-      console.log("Cleaned up lambda node_modules.");
-    }
-  } catch (cleanupErr) {
-    console.warn(
-      "Warning: failed to clean up lambda node_modules:",
-      cleanupErr,
+  for (const lambdaConfig of LAMBDAS) {
+    console.log(`\nDeploying lambda: ${lambdaConfig.name}`);
+    const zipPath = await buildBundle(lambdaConfig.dir);
+    await deploy(
+      zipPath,
+      lambdaConfig.name,
+      lambdaConfig.description,
+      lambdaConfig.env,
     );
+
+    // Clean up node_modules in lambda dir after deploy to keep repo tidy
+    try {
+      const nodeModulesPath = path.join(lambdaConfig.dir, "node_modules");
+      if (await pathExists(nodeModulesPath)) {
+        await fsp.rm(nodeModulesPath, { recursive: true, force: true });
+        console.log(`Cleaned up lambda node_modules for ${lambdaConfig.name}.`);
+      }
+    } catch (cleanupErr) {
+      console.warn(
+        `Warning: failed to clean up lambda node_modules for ${lambdaConfig.name}:`,
+        cleanupErr,
+      );
+    }
   }
 }
 

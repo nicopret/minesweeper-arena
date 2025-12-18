@@ -1,10 +1,12 @@
-// Deploy or update an API Gateway HTTP API named "arena-scoreboard" with POST /user
-// wired to the user-identity Lambda.
+// Deploy or update an API Gateway HTTP API named "arena-scoreboard" with:
+//   - POST /user -> user-identity Lambda
+//   - GET /{userid}/minesweeper/{level} -> highscores Lambda
 //
 // Usage: npm run api:deploy
 // Env (loaded from scoreboard/.env if present):
 //   AWS_REGION (default: us-east-1)
 //   LAMBDA_FUNCTION_NAME (default: user-identity)
+//   HIGHSCORES_FUNCTION_NAME (default: highscores)
 //   API_NAME (default: arena-scoreboard)
 //   API_STAGE (default: prod)
 
@@ -52,6 +54,8 @@ const region = process.env.AWS_REGION || "us-east-1";
 const apiName = process.env.API_NAME || "arena-scoreboard";
 const stageName = process.env.API_STAGE || "prod";
 const functionName = process.env.LAMBDA_FUNCTION_NAME || "user-identity";
+const highscoresFunctionName =
+  process.env.HIGHSCORES_FUNCTION_NAME || "highscores";
 
 const apiClient = new ApiGatewayV2Client({ region });
 const lambdaClient = new LambdaClient({ region });
@@ -78,7 +82,7 @@ async function ensureApi() {
             "x-api-key",
             "x-requested-with",
           ],
-          AllowMethods: ["POST", "OPTIONS"],
+          AllowMethods: ["POST", "GET", "OPTIONS"],
           MaxAge: 86400,
         },
       }),
@@ -98,7 +102,7 @@ async function ensureApi() {
           "x-api-key",
           "x-requested-with",
         ],
-        AllowMethods: ["POST", "OPTIONS"],
+        AllowMethods: ["POST", "GET", "OPTIONS"],
         MaxAge: 86400,
       },
     }),
@@ -112,19 +116,11 @@ async function ensureIntegration(apiId, integrationUri) {
       ApiId: apiId,
     }),
   );
-  const existing = res.Items?.find((i) => i.IntegrationType === "AWS_PROXY");
-  if (existing) {
-    if (existing.IntegrationUri !== integrationUri) {
-      await apiClient.send(
-        new UpdateIntegrationCommand({
-          ApiId: apiId,
-          IntegrationId: existing.IntegrationId,
-          IntegrationUri: integrationUri,
-        }),
-      );
-    }
-    return existing.IntegrationId;
-  }
+  const existing = res.Items?.find(
+    (i) =>
+      i.IntegrationType === "AWS_PROXY" && i.IntegrationUri === integrationUri,
+  );
+  if (existing) return existing.IntegrationId;
 
   const created = await apiClient.send(
     new CreateIntegrationCommand({
@@ -137,8 +133,7 @@ async function ensureIntegration(apiId, integrationUri) {
   return created.IntegrationId;
 }
 
-async function ensureRoute(apiId, integrationId) {
-  const routeKey = "POST /user";
+async function ensureRoute(apiId, routeKey, integrationId) {
   const res = await apiClient.send(
     new GetRoutesCommand({
       ApiId: apiId,
@@ -197,15 +192,20 @@ async function ensureStage(apiId) {
   );
 }
 
-async function addLambdaPermission(apiId, accountId, lambdaArn) {
-  const sourceArn = `arn:aws:execute-api:${region}:${accountId}:${apiId}/*/*/user`;
+async function addLambdaPermission(
+  apiId,
+  accountId,
+  lambdaArn,
+  statementId,
+  sourceArn,
+) {
   try {
     await lambdaClient.send(
       new AddPermissionCommand({
         Action: "lambda:InvokeFunction",
         FunctionName: lambdaArn,
         Principal: "apigateway.amazonaws.com",
-        StatementId: `apigw-${apiId}-user`,
+        StatementId: statementId,
         SourceArn: sourceArn,
       }),
     );
@@ -217,30 +217,65 @@ async function addLambdaPermission(apiId, accountId, lambdaArn) {
   }
 }
 
-async function getLambdaArn() {
+async function getLambdaArn(fnName) {
   const res = await lambdaClient.send(
-    new GetFunctionCommand({ FunctionName: functionName }),
+    new GetFunctionCommand({ FunctionName: fnName }),
   );
   return res.Configuration?.FunctionArn;
 }
 
 async function deployApi() {
   const accountId = await getAccountId();
-  const lambdaArn = await getLambdaArn();
-  if (!lambdaArn) throw new Error("Could not resolve Lambda ARN");
+  const identityLambdaArn = await getLambdaArn(functionName);
+  const highscoresLambdaArn = await getLambdaArn(highscoresFunctionName);
+  if (!identityLambdaArn)
+    throw new Error("Could not resolve user-identity Lambda ARN");
+  if (!highscoresLambdaArn)
+    throw new Error("Could not resolve highscores Lambda ARN");
 
   const api = await ensureApi();
   console.log(`API ID: ${api.ApiId}`);
 
-  const integrationUri = `arn:aws:apigateway:${region}:lambda:path/2015-03-31/functions/${lambdaArn}/invocations`;
-  const integrationId = await ensureIntegration(api.ApiId, integrationUri);
-  console.log(`Integration ID: ${integrationId}`);
+  const identityIntegrationUri = `arn:aws:apigateway:${region}:lambda:path/2015-03-31/functions/${identityLambdaArn}/invocations`;
+  const highscoresIntegrationUri = `arn:aws:apigateway:${region}:lambda:path/2015-03-31/functions/${highscoresLambdaArn}/invocations`;
 
-  await ensureRoute(api.ApiId, integrationId);
+  const identityIntegrationId = await ensureIntegration(
+    api.ApiId,
+    identityIntegrationUri,
+  );
+  const highscoresIntegrationId = await ensureIntegration(
+    api.ApiId,
+    highscoresIntegrationUri,
+  );
+  console.log(
+    `Integrations ensured: identity=${identityIntegrationId}, highscores=${highscoresIntegrationId}`,
+  );
+
+  await ensureRoute(api.ApiId, "POST /user", identityIntegrationId);
   console.log("Route POST /user ensured.");
 
-  await addLambdaPermission(api.ApiId, accountId, lambdaArn);
-  console.log("Lambda invoke permission ensured for API Gateway.");
+  await ensureRoute(
+    api.ApiId,
+    "GET /{userid}/minesweeper/{level}",
+    highscoresIntegrationId,
+  );
+  console.log("Route GET /{userid}/minesweeper/{level} ensured.");
+
+  await addLambdaPermission(
+    api.ApiId,
+    accountId,
+    identityLambdaArn,
+    `apigw-${api.ApiId}-user`,
+    `arn:aws:execute-api:${region}:${accountId}:${api.ApiId}/*/*/user`,
+  );
+  await addLambdaPermission(
+    api.ApiId,
+    accountId,
+    highscoresLambdaArn,
+    `apigw-${api.ApiId}-highscores`,
+    `arn:aws:execute-api:${region}:${accountId}:${api.ApiId}/*/GET/*/minesweeper/*`,
+  );
+  console.log("Lambda invoke permissions ensured for API Gateway.");
 
   await ensureStage(api.ApiId);
   console.log(`Stage "${stageName}" updated.`);

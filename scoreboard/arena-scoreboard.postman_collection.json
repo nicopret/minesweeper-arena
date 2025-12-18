@@ -11,21 +11,10 @@
       "value": "https://{{apiId}}.execute-api.{{region}}.amazonaws.com/{{stage}}",
       "type": "string"
     },
-    {
-      "key": "apiId",
-      "value": "<your-api-id>",
-      "type": "string"
-    },
-    {
-      "key": "region",
-      "value": "us-east-1",
-      "type": "string"
-    },
-    {
-      "key": "stage",
-      "value": "prod",
-      "type": "string"
-    }
+    { "key": "apiId", "value": "<your-api-id>", "type": "string" },
+    { "key": "region", "value": "us-east-1", "type": "string" },
+    { "key": "stage", "value": "prod", "type": "string" },
+    { "key": "userId", "value": "", "type": "string" }
   ],
   "item": [
     {
@@ -46,6 +35,65 @@
           "raw": "{{baseUrl}}/user",
           "host": ["{{baseUrl}}"],
           "path": ["user"]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "let body;",
+              "try {",
+              "  body = pm.response.json();",
+              "} catch (e) {",
+              "  body = null;",
+              "}",
+              "if (body && body.userId) {",
+              "  pm.collectionVariables.set('userId', body.userId);",
+              "  console.log('Saved userId:', body.userId);",
+              "}"
+            ]
+          }
+        }
+      ],
+      "response": []
+    },
+    {
+      "name": "GET /{userId}/minesweeper/easy-9x9",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/{{userId}}/minesweeper/easy-9x9",
+          "host": ["{{baseUrl}}"],
+          "path": ["{{userId}}", "minesweeper", "easy-9x9"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "GET /{userId}/minesweeper/medium-16x16",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/{{userId}}/minesweeper/medium-16x16",
+          "host": ["{{baseUrl}}"],
+          "path": ["{{userId}}", "minesweeper", "medium-16x16"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "GET /{userId}/minesweeper/hard-16x30",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/{{userId}}/minesweeper/hard-16x30",
+          "host": ["{{baseUrl}}"],
+          "path": ["{{userId}}", "minesweeper", "hard-16x30"]
         }
       },
       "response": []
