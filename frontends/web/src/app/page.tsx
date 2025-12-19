@@ -15,6 +15,9 @@ import TimerContainer from "./containers/TimerContainer";
 import GameInfoContainer from "./containers/GameInfoContainer";
 import DifficultyOptionContainer from "./containers/DifficultyOptionContainer";
 import BoardContainer from "./containers/BoardContainer";
+import GoogleLoginPanel from "./components/auth/GoogleLoginPanel";
+import HighscoresPanel from "./components/highscores/HighscoresPanel";
+import { setHighscores, setHighlight } from "./store/authSlice";
 import styles from "./page.module.css";
 
 type TestWindow = typeof window & {
@@ -30,18 +33,26 @@ export default function Minesweeper() {
     revealed,
     flagged,
     gameOver,
+    gameWon,
     isRunning,
+    score,
+    difficulty,
     selectedRow,
     selectedCol,
     resetId,
   } = gameState;
 
   const isTestEnv = process.env.NODE_ENV === "test";
+  const scoreboardApiBase = process.env.NEXT_PUBLIC_SCOREBOARD_API_BASE_URL;
   const [cellSize, setCellSize] = useState(30);
   const gameCardRef = useRef<HTMLDivElement | null>(null);
   const [hasMounted, setHasMounted] = useState(false);
   const autoClickRanFor = useRef(0);
   const [isNativeMobile, setIsNativeMobile] = useState(false);
+  const lastScoreSyncResetId = useRef<number | null>(null);
+
+  const user = useAppSelector((state) => state.auth.user);
+  const highscores = useAppSelector((state) => state.auth.highscores);
 
   // Track client mount to keep SSR/CSR consistent
   useEffect(() => {
@@ -123,7 +134,7 @@ export default function Minesweeper() {
   const handleCellClick = useCallback(
     (row: number, col: number): void => {
       dispatch(setSelection({ row, col }));
-      dispatch(revealCellAction({ row, col }));
+      dispatch(revealCellAction({ row, col, userInitiated: true }));
     },
     [dispatch],
   );
@@ -131,10 +142,183 @@ export default function Minesweeper() {
   // Toggle flag without an event (for keyboard)
   const toggleFlag = useCallback(
     (row: number, col: number): void => {
-      dispatch(toggleFlagAction({ row, col }));
+      dispatch(toggleFlagAction({ row, col, userInitiated: true }));
     },
     [dispatch],
   );
+
+  // Clear highlight whenever a game ends (will be re-set on win below)
+  useEffect(() => {
+    if (gameOver) {
+      dispatch(setHighlight(null));
+    }
+  }, [dispatch, gameOver, gameWon]);
+
+  // Push new high scores to the API when a game is won.
+  useEffect(() => {
+    if (!gameOver || !gameWon) return;
+    if (score === null || score === undefined) return;
+    if (!user?.userId) return;
+    if (!scoreboardApiBase) return;
+    if (lastScoreSyncResetId.current === resetId) return;
+
+    const levelIdMap = {
+      easy: "easy-9x9",
+      medium: "medium-16x16",
+      hard: "hard-16x30",
+    } as const;
+    const levelId = levelIdMap[difficulty];
+
+    const existingEntry = highscores.find((h) => h.levelId === levelId);
+    const existingScores = Array.isArray(existingEntry?.scores)
+      ? [...existingEntry.scores]
+      : typeof existingEntry?.highScore === "number"
+        ? [existingEntry.highScore]
+        : [];
+
+    const nextScores = [...existingScores, score]
+      .filter((n): n is number => typeof n === "number" && Number.isFinite(n))
+      .sort((a, b) => b - a)
+      .slice(0, 15);
+
+    const changed =
+      nextScores.length !== existingScores.length ||
+      nextScores.some((v, i) => v !== existingScores[i]);
+
+    if (!changed) {
+      lastScoreSyncResetId.current = resetId;
+      return;
+    }
+
+    lastScoreSyncResetId.current = resetId;
+
+    const base = scoreboardApiBase.replace(/\/$/, "");
+    const userId = user.userId;
+
+    void (async () => {
+      try {
+        await fetch(
+          `${base}/${encodeURIComponent(userId)}/minesweeper/${encodeURIComponent(levelId)}`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ scores: nextScores }),
+          },
+        );
+      } catch (err) {
+        console.warn("Failed to update highscores", err);
+      } finally {
+        const updatedEntry = {
+          levelId,
+          highScore: nextScores[0],
+          scores: nextScores,
+          attempts: nextScores.length,
+          updatedAt: Date.now(),
+          bestTimeMs: existingEntry?.bestTimeMs,
+        };
+        dispatch(setHighscores([updatedEntry]));
+        dispatch(setHighlight({ score, levelId }));
+      }
+    })();
+  }, [
+    dispatch,
+    gameOver,
+    gameWon,
+    score,
+    user?.userId,
+    scoreboardApiBase,
+    resetId,
+    highscores,
+    difficulty,
+  ]);
+
+  // Refetch highscores for the selected difficulty when it changes.
+  useEffect(() => {
+    if (!user?.userId) return;
+    if (!scoreboardApiBase) return;
+    const base = scoreboardApiBase.replace(/\/$/, "");
+    const userId = user.userId;
+    const levelIdMap = {
+      easy: "easy-9x9",
+      medium: "medium-16x16",
+      hard: "hard-16x30",
+    } as const;
+    const levelId = levelIdMap[difficulty];
+    let cancelled = false;
+
+    const fetchLevel = async () => {
+      try {
+        const res = await fetch(
+          `${base}/${encodeURIComponent(userId)}/minesweeper/${encodeURIComponent(levelId)}`,
+        );
+        if (!res.ok) {
+          dispatch(setHighscores([]));
+          return;
+        }
+        const data = (await res.json()) as {
+          items?: Array<{
+            highScore?: number | string;
+            scores?: unknown[];
+            updatedAt?: string | number | null;
+            updatedAtMs?: string | number | null;
+            attempts?: number;
+            bestTimeMs?: number;
+          }>;
+        };
+        if (cancelled) return;
+        const items = Array.isArray(data.items) ? data.items : [];
+        const first = items[0];
+        if (!first) {
+          dispatch(setHighscores([]));
+          return;
+        }
+        const scoreList = Array.isArray(first.scores)
+          ? first.scores
+              .filter(
+                (n): n is number => typeof n === "number" && Number.isFinite(n),
+              )
+              .sort((a, b) => b - a)
+          : [];
+        const hsRaw = first.highScore;
+        const highScore =
+          typeof hsRaw === "number"
+            ? hsRaw
+            : typeof hsRaw === "string"
+              ? Number(hsRaw)
+              : scoreList.length
+                ? scoreList[0]
+                : undefined;
+        const updatedEntry = {
+          levelId,
+          highScore: highScore,
+          scores: scoreList,
+          attempts:
+            typeof first.attempts === "number"
+              ? first.attempts
+              : scoreList.length || undefined,
+          bestTimeMs:
+            typeof first.bestTimeMs === "number" ? first.bestTimeMs : undefined,
+          updatedAt:
+            typeof first.updatedAt === "string" ||
+            typeof first.updatedAt === "number"
+              ? first.updatedAt
+              : typeof first.updatedAtMs === "string" ||
+                  typeof first.updatedAtMs === "number"
+                ? first.updatedAtMs
+                : null,
+        };
+        dispatch(setHighscores([updatedEntry]));
+      } catch (err) {
+        console.warn("Failed to fetch highscores for level", levelId, err);
+        dispatch(setHighscores([]));
+      }
+    };
+
+    void fetchLevel();
+    return () => {
+      cancelled = true;
+    };
+  }, [dispatch, difficulty, highscores, scoreboardApiBase, user?.userId]);
 
   // keyboard navigation and actions
   useEffect(() => {
@@ -261,7 +445,13 @@ export default function Minesweeper() {
         }
       }
       dispatch(setSelection({ row: clickRow, col: clickCol }));
-      dispatch(revealCellAction({ row: clickRow, col: clickCol }));
+      dispatch(
+        revealCellAction({
+          row: clickRow,
+          col: clickCol,
+          userInitiated: false,
+        }),
+      );
     }, 0);
     return () => clearTimeout(timeout);
   }, [
@@ -319,18 +509,49 @@ export default function Minesweeper() {
     <>
       <div className={`${styles.gameContainer} game-container`}>
         <div className={`${styles.gameCard} game-card`} ref={gameCardRef}>
-          <h1 className="text-center mb-4 display-5 fw-bold">
-            <i className="fa-solid fa-bomb me-2" aria-hidden="true" />
-            Minesweeper
-          </h1>
+          <div className={styles.banner}>
+            <div className={styles.bannerLeft} aria-hidden="true" />
+            <div className={styles.bannerTitle}>
+              <i className="fa-solid fa-bomb me-2" aria-hidden="true" />
+              <span className={styles.bannerTitleText}>Minesweeper</span>
+            </div>
+            <div className={styles.bannerRight}>
+              <GoogleLoginPanel />
+            </div>
+          </div>
 
-          <TimerContainer onNewGame={handleNewGame} />
-
-          <GameInfoContainer />
-
-          <DifficultyOptionContainer />
-
-          <BoardContainer cellSize={cellSize} />
+          <div className={styles.twoColumn}>
+            <section
+              className={`${styles.gameInfoPanel} ${styles.infoSection} ${styles.mobileOnly}`}
+              aria-label="How to play instructions"
+            >
+              <GameInfoContainer />
+            </section>
+            <section
+              className={styles.desktopLeftColumn}
+              aria-label="How to play and highscores"
+            >
+              <div className={styles.gameInfoPanel}>
+                <GameInfoContainer />
+              </div>
+              <div className={styles.leftPanel}>
+                <HighscoresPanel />
+              </div>
+            </section>
+            <section className={styles.rightPanel} aria-label="Game board">
+              <DifficultyOptionContainer />
+              <TimerContainer onNewGame={handleNewGame} />
+              <div className={styles.boardAligner}>
+                <BoardContainer cellSize={cellSize} />
+              </div>
+            </section>
+            <section
+              className={`${styles.leftPanel} ${styles.scoreSection} ${styles.mobileOnly}`}
+              aria-label="Scoreboard"
+            >
+              <HighscoresPanel />
+            </section>
+          </div>
         </div>
       </div>
     </>

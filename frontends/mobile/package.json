@@ -3,5 +3,8 @@
   "version": "0.1.0",
   "private": true,
   "description": "Capacitor shell for Minesweeper mobile",
-  "license": "MIT"
+  "license": "MIT",
+  "dependencies": {
+    "@codetrix-studio/capacitor-google-auth": "3.4.0-rc.4"
+  }
 }

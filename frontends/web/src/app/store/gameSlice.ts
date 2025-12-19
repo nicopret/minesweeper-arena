@@ -29,6 +29,7 @@ export type GameState = {
   flagged: boolean[][];
   gameOver: boolean;
   gameWon: boolean;
+  score: number | null;
   firstClick: boolean;
   timer: number;
   flagCount: number;
@@ -69,6 +70,7 @@ const buildState = (
     flagged,
     gameOver: false,
     gameWon: false,
+    score: null,
     firstClick: true,
     timer: 0,
     flagCount: 0,
@@ -87,6 +89,9 @@ const endGame = (
   state.gameOver = true;
   state.gameWon = won;
   state.isRunning = false;
+  state.score = won
+    ? GameUtils.calculateScore(state.config, state.timer)
+    : null;
 
   const newRevealed = state.revealed.map((row) => [...row]);
   for (let i = 0; i < state.config.rows; i++) {
@@ -116,9 +121,13 @@ const gameSlice = createSlice({
     },
     revealCell: (
       state,
-      action: PayloadAction<{ row: number; col: number }>,
+      action: PayloadAction<{
+        row: number;
+        col: number;
+        userInitiated?: boolean;
+      }>,
     ) => {
-      const { row, col } = action.payload;
+      const { row, col, userInitiated = false } = action.payload;
       if (
         state.gameOver ||
         state.flagged[row]?.[col] ||
@@ -134,6 +143,9 @@ const gameSlice = createSlice({
         board = GameUtils.placeMines(state.config, row, col);
         state.board = board;
         state.firstClick = false;
+      }
+
+      if (userInitiated && !state.isRunning) {
         state.isRunning = true;
       }
 
@@ -163,9 +175,13 @@ const gameSlice = createSlice({
     },
     toggleFlag: (
       state,
-      action: PayloadAction<{ row: number; col: number }>,
+      action: PayloadAction<{
+        row: number;
+        col: number;
+        userInitiated?: boolean;
+      }>,
     ) => {
-      const { row, col } = action.payload;
+      const { row, col, userInitiated = false } = action.payload;
       if (
         state.gameOver ||
         state.revealed[row]?.[col] ||
@@ -173,6 +189,10 @@ const gameSlice = createSlice({
         typeof state.flagged[row][col] === "undefined"
       )
         return;
+
+      if (userInitiated && !state.isRunning) {
+        state.isRunning = true;
+      }
 
       const currentlyFlagged = !!state.flagged[row]?.[col];
       state.flagged[row][col] = !currentlyFlagged;
@@ -221,6 +241,7 @@ const gameSlice = createSlice({
       state.isRunning = false;
       state.gameOver = false;
       state.gameWon = false;
+      state.score = null;
       state.timer = 0;
       state.flagCount = 0;
     },

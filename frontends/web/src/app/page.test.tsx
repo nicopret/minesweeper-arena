@@ -11,6 +11,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { Provider } from "react-redux";
 import Minesweeper from "./page";
 import { store } from "./store/store";
+import { clearUser, setHighscores, setUser } from "./store/authSlice";
 
 type TestWindow = typeof window & {
   __TEST_setMines?: (mines: Array<[number, number]>) => void;
@@ -32,6 +33,8 @@ describe("Minesweeper page component", () => {
 
   afterEach(() => {
     vi.restoreAllMocks();
+    store.dispatch(clearUser());
+    store.dispatch(setHighscores([]));
   });
 
   it("renders instructions and controls after mount", async () => {
@@ -130,6 +133,7 @@ describe("Minesweeper page component", () => {
     });
 
     expect(screen.getByTestId("game-status")).toHaveTextContent(/You Won/i);
+    expect(screen.getByTestId("game-status")).toHaveTextContent(/Score:/i);
   });
 
   it("updates mine counter when changing difficulty", async () => {
@@ -265,5 +269,34 @@ describe("Minesweeper page component", () => {
     expect(
       document.querySelectorAll(".board-container .cell").length,
     ).toBeGreaterThan(0);
+  });
+
+  it("shows highscores after user is set", async () => {
+    renderGame();
+
+    await act(async () => {
+      store.dispatch(
+        setUser({
+          firstName: "Nico",
+          userId: "u_999",
+          createdAt: new Date(
+            Date.now() - 5 * 24 * 60 * 60 * 1000,
+          ).toISOString(),
+        }),
+      );
+      store.dispatch(
+        setHighscores([
+          { levelId: "easy-9x9", highScore: 500 },
+          { levelId: "medium-16x16", highScore: 300 },
+        ]),
+      );
+    });
+
+    await waitFor(() =>
+      expect(screen.getAllByText(/Highscores/i).length).toBeGreaterThan(0),
+    );
+    expect(screen.getByText(/Playing now for 5 days/i)).toBeInTheDocument();
+    const items = screen.getAllByRole("listitem");
+    expect(items[0]).toHaveTextContent("500");
   });
 });

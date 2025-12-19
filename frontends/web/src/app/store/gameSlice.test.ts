@@ -110,7 +110,10 @@ describe("revealCell", () => {
       .spyOn(GameUtils, "placeMines")
       .mockReturnValue(mineLayout.map((r) => [...r]));
 
-    const next = reducer(initState(), revealCell({ row: 1, col: 1 }));
+    const next = reducer(
+      initState(),
+      revealCell({ row: 1, col: 1, userInitiated: true }),
+    );
 
     expect(spy).toHaveBeenCalledOnce();
     expect(next.firstClick).toBe(false);
@@ -121,10 +124,14 @@ describe("revealCell", () => {
 
   it("ends game as loss when revealing a mine", () => {
     const withMines = reducer(initState(), setTestMines(mines));
-    const next = reducer(withMines, revealCell({ row: 0, col: 0 }));
+    const next = reducer(
+      withMines,
+      revealCell({ row: 0, col: 0, userInitiated: true }),
+    );
 
     expect(next.gameOver).toBe(true);
     expect(next.gameWon).toBe(false);
+    expect(next.score).toBeNull();
     expect(next.revealed[0][0]).toBe(true);
     expect(next.revealed[2][2]).toBe(true); // all mines revealed on loss
     expect(next.isRunning).toBe(false);
@@ -142,12 +149,14 @@ describe("revealCell", () => {
     }
 
     const final = safeCells.reduce(
-      (state, [row, col]) => reducer(state, revealCell({ row, col })),
+      (state, [row, col]) =>
+        reducer(state, revealCell({ row, col, userInitiated: true })),
       seeded,
     );
 
     expect(final.gameWon).toBe(true);
     expect(final.gameOver).toBe(true);
+    expect(final.score).toEqual(expect.any(Number));
     expect(final.revealed.every((row) => row.every(Boolean))).toBe(true);
   });
 });
@@ -169,25 +178,45 @@ describe("toggleFlag", () => {
     expect(noToggle).toBe(revealed);
 
     const withBoard = reducer(base, setTestMines(mines));
-    const flagged = reducer(withBoard, toggleFlag({ row: 1, col: 1 }));
+    const flagged = reducer(
+      withBoard,
+      toggleFlag({ row: 1, col: 1, userInitiated: true }),
+    );
     expect(flagged.flagged[1][1]).toBe(true);
     expect(flagged.flagCount).toBe(1);
 
-    const unflagged = reducer(flagged, toggleFlag({ row: 1, col: 1 }));
+    const unflagged = reducer(
+      flagged,
+      toggleFlag({ row: 1, col: 1, userInitiated: true }),
+    );
     expect(unflagged.flagged[1][1]).toBe(false);
     expect(unflagged.flagCount).toBe(0);
   });
 
+  it("starts the timer on first interaction even if it is a flag", () => {
+    const base = initState();
+    const next = reducer(
+      base,
+      toggleFlag({ row: 0, col: 0, userInitiated: true }),
+    );
+
+    expect(next.isRunning).toBe(true);
+  });
+
   it("wins when all mines are flagged correctly", () => {
     const withBoard = reducer(initState(), setTestMines(mines));
-    const afterFirstFlag = reducer(withBoard, toggleFlag({ row: 0, col: 0 }));
+    const afterFirstFlag = reducer(
+      withBoard,
+      toggleFlag({ row: 0, col: 0, userInitiated: true }),
+    );
     const afterSecondFlag = reducer(
       afterFirstFlag,
-      toggleFlag({ row: 2, col: 2 }),
+      toggleFlag({ row: 2, col: 2, userInitiated: true }),
     );
 
     expect(afterSecondFlag.gameWon).toBe(true);
     expect(afterSecondFlag.gameOver).toBe(true);
+    expect(afterSecondFlag.score).toEqual(expect.any(Number));
     expect(afterSecondFlag.revealed.every((row) => row.every(Boolean))).toBe(
       true,
     );

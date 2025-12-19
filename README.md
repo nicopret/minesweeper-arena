@@ -56,6 +56,89 @@ The pre-commit hook runs eslint (with fix) and Prettier on staged files via lint
 - `npm run test:e2e` — Playwright E2E tests (first run may need `npx playwright install --with-deps`)
 - `npm run test:full` — run Vitest then Playwright
 
+## Scoreboard backend (Lambda + API Gateway + DynamoDB)
+
+Files live in `scoreboard/`. Required env vars can be set in `scoreboard/.env`:
+
+- `AWS_REGION` (e.g., `us-east-1`)
+- `LAMBDA_ROLE_ARN` (IAM role ARN for the Lambda)
+- `LAMBDA_FUNCTION_NAME` (default `user-identity`)
+- `USER_IDENTITY_TABLE` (default `UserIdentity`)
+- `HIGHSCORES_TABLE` (default `MinesweeperHighScores`)
+- `API_NAME` (default `arena-scoreboard`)
+- `API_STAGE` (default `prod`)
+- Frontend env to call the API from the browser: set `NEXT_PUBLIC_SCOREBOARD_API_BASE_URL` (e.g., `https://<apiId>.execute-api.<region>.amazonaws.com/<stage>`)
+
+### 1) Provision IAM role (once)
+
+```bash
+cd scoreboard
+./provision-lambda-role.sh
+# Note the output ARN and set LAMBDA_ROLE_ARN in scoreboard/.env
+```
+
+### 2) Create DynamoDB tables (UserIdentity + MinesweeperHighScores)
+
+```bash
+npm run dynamodb:create
+```
+
+### 3) Deploy the Lambda
+
+```bash
+npm run lambda:deploy
+```
+
+The deployment script bundles the function from `scoreboard/lambdas/user-identity/` (including dependencies) and uploads it.
+
+### 4) Deploy the API Gateway
+
+```bash
+npm run api:deploy
+```
+
+This creates/updates an HTTP API named `arena-scoreboard` with `POST /user` wired to the Lambda. The script prints the invoke URL, e.g.:
+
+```
+https://<apiId>.execute-api.<region>.amazonaws.com/prod/user
+```
+
+### 5) Test the Lambda directly
+
+```bash
+npm run lambda:test -- --provider google --providerUserId 123
+```
+
+Shows a pretty-printed response with `userId`, `createdAt`, and `lastSeenAt`.
+
+### 6) Test the API with Postman
+
+Import `scoreboard/arena-scoreboard.postman_collection.json`, set `apiId`, `region`, and `stage` variables, then run the `POST /user` request with body:
+
+```json
+{
+  "provider": "google",
+  "providerUserId": "test-user-123"
+}
+```
+
+## Google Login (frontend)
+
+The web UI supports Google login. On the web it uses Google Identity Services (GIS). On the Capacitor Android app it uses a native Google Auth plugin.
+
+1. Create a Google OAuth Client ID (Web application) in Google Cloud Console.
+2. Add the client id to `frontends/web/.env.local`:
+
+```bash
+NEXT_PUBLIC_GOOGLE_CLIENT_ID="YOUR_GOOGLE_CLIENT_ID"
+```
+
+After restarting `npm run dev`, the “Sign in with Google” button shows at the top of the game card, and the UI displays `Hi, <firstName>` after a successful sign-in.
+
+### Mobile (Capacitor) notes
+
+Bundled static assets run inside a WebView with a non-standard origin (often `capacitor://localhost`), so web-based GIS sign-in is unreliable there. The mobile app uses a native sign-in flow instead; see `frontends/mobile/README.md` for setup.
+
 ## Desktop (Electron)
 
 Run the desktop client (reuses the web UI via the local Next dev server):
