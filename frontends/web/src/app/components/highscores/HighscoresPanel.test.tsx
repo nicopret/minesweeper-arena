@@ -40,11 +40,11 @@ describe("HighscoresPanel", () => {
     expect(screen.getByText(/Highscores/i)).toBeInTheDocument();
     expect(screen.getByText(/Playing now for 10 days/i)).toBeInTheDocument();
     const items = screen.getAllByRole("listitem");
-    expect(items[0]).toHaveTextContent("#1");
+    expect(items[0]).toHaveTextContent("1");
     expect(items[0]).toHaveTextContent("900");
-    expect(items[1]).toHaveTextContent("#2");
+    expect(items[1]).toHaveTextContent("2");
     expect(items[1]).toHaveTextContent("800");
-    expect(items[2]).toHaveTextContent("#3");
+    expect(items[2]).toHaveTextContent("3");
     expect(items[2]).toHaveTextContent("500");
   });
 

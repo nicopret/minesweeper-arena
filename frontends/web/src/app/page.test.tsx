@@ -280,7 +280,7 @@ describe("Minesweeper page component", () => {
           firstName: "Nico",
           userId: "u_999",
           createdAt: new Date(
-            Date.now() - 5 * 24 * 60 * 60 * 1000,
+            Date.now() - 10 * 24 * 60 * 60 * 1000,
           ).toISOString(),
         }),
       );
@@ -295,7 +295,7 @@ describe("Minesweeper page component", () => {
     await waitFor(() =>
       expect(screen.getAllByText(/Highscores/i).length).toBeGreaterThan(0),
     );
-    expect(screen.getByText(/Playing now for 5 days/i)).toBeInTheDocument();
+    expect(screen.getByText(/Playing now for 10 days/i)).toBeInTheDocument();
     const items = screen.getAllByRole("listitem");
     expect(items[0]).toHaveTextContent("500");
   });

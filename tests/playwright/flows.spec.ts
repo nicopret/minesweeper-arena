@@ -71,7 +71,9 @@ const triggerGameOver = async (page: Page) => {
   } else {
     await clickUntilGameOver(page);
   }
-  await expect(page.locator("text=Game Over")).toBeVisible();
+  await expect(page.getByTestId("game-status").first()).toHaveText(
+    /Game Over/i,
+  );
 };
 
 // Full e2e flows: keyboard navigation, flag toggling, click-until-mine (lose), and restart behavior.
@@ -98,6 +100,9 @@ test.describe("Full E2E Flows", () => {
   test("click cells until mine -> Game Over appears", async ({ page }) => {
     await page.goto("/", { waitUntil: "networkidle" });
     await triggerGameOver(page);
+    await expect(page.getByTestId("game-status").first()).toHaveText(
+      /Game Over/i,
+    );
   });
 
   test("after game over pressing Enter restarts to instructions view", async ({
@@ -108,7 +113,9 @@ test.describe("Full E2E Flows", () => {
     await triggerGameOver(page);
     await page.keyboard.press("Enter");
 
-    const instructions = page.locator("text=How to play");
+    const instructions = page
+      .getByRole("heading", { name: /How to play/i })
+      .first();
     await expect(instructions).toBeVisible({ timeout: 5000 });
   });
 });
