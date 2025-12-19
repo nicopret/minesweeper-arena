@@ -16,12 +16,13 @@ export default defineConfig({
       "../../tests/playwright/**",
       "../../playwright.config.ts",
     ],
+    passWithNoTests: true,
     coverage: {
       provider: "istanbul",
       reporter: ["text", "lcov"],
     },
     // Allow swapping pools via env to manage memory (default threads)
-    pool: process.env.VITEST_POOL ?? "threads",
+    pool: process.env.VITEST_POOL ?? "forks",
     sequence: {
       concurrent: false,
       shuffle: false,
