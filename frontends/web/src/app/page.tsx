@@ -17,7 +17,7 @@ import DifficultyOptionContainer from "./containers/DifficultyOptionContainer";
 import BoardContainer from "./containers/BoardContainer";
 import GoogleLoginPanel from "./components/auth/GoogleLoginPanel";
 import HighscoresPanel from "./components/highscores/HighscoresPanel";
-import { setHighscores } from "./store/authSlice";
+import { setHighscores, setHighlight } from "./store/authSlice";
 import styles from "./page.module.css";
 
 type TestWindow = typeof window & {
@@ -147,6 +147,13 @@ export default function Minesweeper() {
     [dispatch],
   );
 
+  // Clear highlight whenever a game ends (will be re-set on win below)
+  useEffect(() => {
+    if (gameOver) {
+      dispatch(setHighlight(null));
+    }
+  }, [dispatch, gameOver, gameWon]);
+
   // Push new high scores to the API when a game is won.
   useEffect(() => {
     if (!gameOver || !gameWon) return;
@@ -209,11 +216,8 @@ export default function Minesweeper() {
           updatedAt: Date.now(),
           bestTimeMs: existingEntry?.bestTimeMs,
         };
-        const merged = [
-          ...highscores.filter((h) => h.levelId !== levelId),
-          updatedEntry,
-        ].sort((a, b) => (b.highScore ?? 0) - (a.highScore ?? 0));
-        dispatch(setHighscores(merged));
+        dispatch(setHighscores([updatedEntry]));
+        dispatch(setHighlight({ score, levelId }));
       }
     })();
   }, [
@@ -227,6 +231,94 @@ export default function Minesweeper() {
     highscores,
     difficulty,
   ]);
+
+  // Refetch highscores for the selected difficulty when it changes.
+  useEffect(() => {
+    if (!user?.userId) return;
+    if (!scoreboardApiBase) return;
+    const base = scoreboardApiBase.replace(/\/$/, "");
+    const userId = user.userId;
+    const levelIdMap = {
+      easy: "easy-9x9",
+      medium: "medium-16x16",
+      hard: "hard-16x30",
+    } as const;
+    const levelId = levelIdMap[difficulty];
+    let cancelled = false;
+
+    const fetchLevel = async () => {
+      try {
+        const res = await fetch(
+          `${base}/${encodeURIComponent(userId)}/minesweeper/${encodeURIComponent(levelId)}`,
+        );
+        if (!res.ok) {
+          dispatch(setHighscores([]));
+          return;
+        }
+        const data = (await res.json()) as {
+          items?: Array<{
+            highScore?: number | string;
+            scores?: unknown[];
+            updatedAt?: string | number | null;
+            updatedAtMs?: string | number | null;
+            attempts?: number;
+            bestTimeMs?: number;
+          }>;
+        };
+        if (cancelled) return;
+        const items = Array.isArray(data.items) ? data.items : [];
+        const first = items[0];
+        if (!first) {
+          dispatch(setHighscores([]));
+          return;
+        }
+        const scoreList = Array.isArray(first.scores)
+          ? first.scores
+              .filter(
+                (n): n is number => typeof n === "number" && Number.isFinite(n),
+              )
+              .sort((a, b) => b - a)
+          : [];
+        const hsRaw = first.highScore;
+        const highScore =
+          typeof hsRaw === "number"
+            ? hsRaw
+            : typeof hsRaw === "string"
+              ? Number(hsRaw)
+              : scoreList.length
+                ? scoreList[0]
+                : undefined;
+        const updatedEntry = {
+          levelId,
+          highScore: highScore,
+          scores: scoreList,
+          attempts:
+            typeof first.attempts === "number"
+              ? first.attempts
+              : scoreList.length || undefined,
+          bestTimeMs:
+            typeof first.bestTimeMs === "number" ? first.bestTimeMs : undefined,
+          updatedAt:
+            typeof first.updatedAt === "string" ||
+            typeof first.updatedAt === "number"
+              ? first.updatedAt
+              : typeof first.updatedAtMs === "string" ||
+                  typeof first.updatedAtMs === "number"
+                ? first.updatedAtMs
+                : null,
+        };
+        dispatch(setHighscores([updatedEntry]));
+      } catch (err) {
+        console.warn("Failed to fetch highscores for level", levelId, err);
+        dispatch(setHighscores([]));
+      }
+    };
+
+    void fetchLevel();
+    return () => {
+      cancelled = true;
+    };
+  }, [dispatch, difficulty, highscores, scoreboardApiBase, user?.userId]);
 
   // keyboard navigation and actions
   useEffect(() => {
@@ -436,12 +528,6 @@ export default function Minesweeper() {
               <GameInfoContainer />
             </section>
             <section
-              className={`${styles.leftPanel} ${styles.scoreSection} ${styles.mobileOnly}`}
-              aria-label="Scoreboard"
-            >
-              <HighscoresPanel />
-            </section>
-            <section
               className={styles.desktopLeftColumn}
               aria-label="How to play and highscores"
             >
@@ -455,7 +541,15 @@ export default function Minesweeper() {
             <section className={styles.rightPanel} aria-label="Game board">
               <DifficultyOptionContainer />
               <TimerContainer onNewGame={handleNewGame} />
-              <BoardContainer cellSize={cellSize} />
+              <div className={styles.boardAligner}>
+                <BoardContainer cellSize={cellSize} />
+              </div>
+            </section>
+            <section
+              className={`${styles.leftPanel} ${styles.scoreSection} ${styles.mobileOnly}`}
+              aria-label="Scoreboard"
+            >
+              <HighscoresPanel />
             </section>
           </div>
         </div>

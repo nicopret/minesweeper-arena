@@ -29,6 +29,7 @@ const daysSince = (
 const HighscoresPanel = (): React.JSX.Element | null => {
   const user = useAppSelector((state) => state.auth.user);
   const highscores = useAppSelector((state) => state.auth.highscores);
+  const highlight = useAppSelector((state) => state.auth.highlight);
 
   if (!user?.userId) {
     return (
@@ -70,23 +71,60 @@ const HighscoresPanel = (): React.JSX.Element | null => {
 
   return (
     <div className="mb-3">
-      <h5 className="mb-1">Highscores</h5>
+      <h5 className="mb-2 text-center">Highscores</h5>
       {subtitle ? (
-        <div className="text-muted small mb-2">{subtitle}</div>
+        <div className="text-muted small mb-2 text-center">{subtitle}</div>
       ) : null}
       {sortedScores.length === 0 ? (
-        <div className="text-muted small">No highscores yet</div>
+        <div className="text-muted small text-center">No highscores yet</div>
       ) : (
         <ul className="list-group">
-          {sortedScores.map((score, idx) => (
-            <li
-              key={`score-${idx}-${score}`}
-              className="list-group-item d-flex justify-content-between align-items-center"
-            >
-              <span className="text-muted">#{idx + 1}</span>
-              <span className="fw-bold">{score}</span>
-            </li>
-          ))}
+          {(() => {
+            let highlightUsed = false;
+            return sortedScores.map((score, idx) => {
+              const isLatest =
+                highlight &&
+                typeof highlight.score === "number" &&
+                Number.isFinite(highlight.score) &&
+                score === highlight.score &&
+                !highlightUsed;
+
+              if (isLatest) {
+                highlightUsed = true;
+              }
+              return (
+                <li
+                  key={`score-${idx}-${score}`}
+                  className="list-group-item d-flex justify-content-between align-items-center"
+                  style={{
+                    fontSize: "14px",
+                    backgroundColor: isLatest
+                      ? "rgba(13,110,253,0.08)"
+                      : undefined,
+                  }}
+                >
+                  <span className="text-muted">{idx + 1}</span>
+                  <span className="fw-bold d-flex align-items-center gap-2">
+                    {isLatest ? (
+                      <span
+                        style={{
+                          fontSize: "24px",
+                          lineHeight: 1,
+                          fontWeight: 900,
+                          display: "flex",
+                          alignItems: "center",
+                        }}
+                        aria-hidden="true"
+                      >
+                        →
+                      </span>
+                    ) : null}
+                    <span>{score.toLocaleString()}</span>
+                  </span>
+                </li>
+              );
+            });
+          })()}
         </ul>
       )}
     </div>

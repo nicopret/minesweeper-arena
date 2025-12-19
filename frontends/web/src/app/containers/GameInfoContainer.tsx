@@ -3,32 +3,10 @@ import { Capacitor } from "@capacitor/core";
 import GameStatusLabel from "../components/labels/GameStatusLabel";
 import { useAppSelector } from "../store/hooks";
 
-const formatScore = (score: number): string =>
-  new Intl.NumberFormat(undefined, { maximumFractionDigits: 0 }).format(score);
-
-const GameResult = ({
-  gameWon,
-  score,
-}: {
-  gameWon: boolean;
-  score: number | null;
-}): React.JSX.Element => (
+const GameResult = ({ gameWon }: { gameWon: boolean }): React.JSX.Element => (
   <GameStatusLabel
     iconClassName={gameWon ? "fa-solid fa-trophy" : "fa-solid fa-bomb"}
-    text={
-      gameWon ? (
-        <>
-          You Won!
-          {typeof score === "number" ? (
-            <span className="ms-2 fs-6 fw-normal text-muted">
-              Score: {formatScore(score)}
-            </span>
-          ) : null}
-        </>
-      ) : (
-        "Game Over!"
-      )
-    }
+    text={gameWon ? <>You Won!</> : "Game Over!"}
     className={gameWon ? "text-success" : "text-danger"}
     containerTestId="game-status"
     iconTestId="game-status-icon"
@@ -36,7 +14,7 @@ const GameResult = ({
 );
 
 const GameInfoContainer = (): React.JSX.Element => {
-  const { gameOver, gameWon, score } = useAppSelector((state) => state.game);
+  const { gameOver, gameWon } = useAppSelector((state) => state.game);
   const [isNativeMobile, setIsNativeMobile] = useState(false);
 
   useEffect(() => {
@@ -44,11 +22,11 @@ const GameInfoContainer = (): React.JSX.Element => {
   }, []);
 
   if (gameOver) {
-    return <GameResult gameWon={gameWon} score={score} />;
+    return <GameResult gameWon={gameWon} />;
   }
 
   return (
-    <div className="mb-3 text-center">
+    <div className="mb-3 text-center" style={{ fontSize: "14px" }}>
       <h5 className="mb-2">How to play</h5>
       {isNativeMobile ? (
         <p className="mb-0">

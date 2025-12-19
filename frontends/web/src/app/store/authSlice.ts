@@ -13,6 +13,10 @@ export type AuthUser = {
 export type AuthState = {
   user: AuthUser | null;
   highscores: HighscoreEntry[];
+  highlight?: {
+    score: number | null;
+    levelId?: string;
+  } | null;
 };
 
 export type HighscoreEntry = {
@@ -27,6 +31,7 @@ export type HighscoreEntry = {
 const initialState: AuthState = {
   user: null,
   highscores: [],
+  highlight: null,
 };
 
 const authSlice = createSlice({
@@ -39,12 +44,20 @@ const authSlice = createSlice({
     clearUser: (state) => {
       state.user = null;
       state.highscores = [];
+      state.highlight = null;
     },
     setHighscores: (state, action: PayloadAction<HighscoreEntry[]>) => {
       state.highscores = action.payload;
     },
+    setHighlight: (
+      state,
+      action: PayloadAction<{ score: number | null; levelId?: string } | null>,
+    ) => {
+      state.highlight = action.payload;
+    },
   },
 });
 
-export const { setUser, clearUser, setHighscores } = authSlice.actions;
+export const { setUser, clearUser, setHighscores, setHighlight } =
+  authSlice.actions;
 export default authSlice.reducer;
